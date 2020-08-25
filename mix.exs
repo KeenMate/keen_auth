@@ -39,8 +39,7 @@ defmodule KeenAuth.MixProject do
       # This option is only needed when you don't want to use the OTP application name
       name: "keen_auth",
       # These are the default files included in the package
-      files: ~w(lib .formatter.exs mix.exs README* readme* LICENSE*
-                license* CHANGELOG* changelog* src),
+      files: ~w(lib .formatter.exs mix.exs README.md LICENSE),
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/KeenMate/keen_auth"}
     ]
