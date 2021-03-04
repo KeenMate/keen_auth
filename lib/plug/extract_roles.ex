@@ -16,9 +16,14 @@ defmodule KeenAuth.Plug.ExtractRoles do
     with true <- Request.has_claims?(conn, client),
          claims <- Request.get_claims(conn, client),
          {:ok, roles} <- extract_roles_from_claims(claims, client_id(client)) do
+      Logger.debug("[ExtractRoles] Saving roles to assigns: #{inspect(roles)}")
+
       Conn.assign(conn, :user_roles, roles)
     else
-      _ -> conn
+      err ->
+        Logger.debug("[ExtractRoles] Couldn't extract roles: #{inspect(err)}")
+
+        conn
     end
   end
 
