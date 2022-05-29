@@ -1,144 +1,42 @@
 defmodule KeenAuth.Session do
-  require Logger
-  alias Plug.Conn
-  alias KeenAuth.Helpers.Date
-  alias KeenAuth.Helpers.JwtHelpers
+  @callback new(conn :: Plug.Conn.t(), user :: map(), token :: binary()) :: Plug.Conn.t()
+  @callback current_user(conn :: Plug.Conn.t()) :: map()
+  @callback access_token(conn :: Plug.Conn.t()) :: binary()
+  @callback delete(conn :: Plug.Conn.t()) :: Plug.Conn.t()
 
-  @access_token_base :access_token
-  @id_token_base :id_token
+  import Plug.Conn, only: [put_session: 3, delete_session: 2, get_session: 2]
 
-  # Session handling
+  defmacro __using__(_opts \\ []) do
+    quote do
+      @behaviour unquote(__MODULE__)
 
-  def create_from_callback(conn, params, client) when is_atom(client) do
-    with {:ok, tokens} <- OpenIDConnect.fetch_tokens(client, params) do
-      create(conn, tokens, client)
+      def new(conn, user, token), do: unquote(__MODULE__).new(conn, user, token)
+      def current_user(conn), do: unquote(__MODULE__).current_user(conn)
+      def access_token(conn), do: unquote(__MODULE__).access_token(conn)
+      def delete(conn), do: unquote(__MODULE__).delete(conn)
+
+      defoverridable [new: 3, current_user: 1, access_token: 1, delete: 1]
     end
   end
 
-  def create(conn, %{"access_token" => access_token, "id_token" => id_token} = tokens, client) when is_atom(client) do
-    with {:ok, _} <- OpenIDConnect.verify(client, access_token),
-         {:ok, _} <- OpenIDConnect.verify(client, id_token) do
-      conn
-      |> put_required_tokens(tokens, client)
-      |> try_putting_refresh_token(tokens, client)
-    end
-  end
-
-  def destroy(conn, client) do
+  def new(conn, user, token) do
     conn
-    |> delete_tokens(client)
+    |> put_session(:current_user, user)
+    |> put_session(:access_token, token)
   end
 
-  # Token handling
+  def current_user(conn) do
+    get_session(conn, :current_user)
+  end
 
-  defp put_required_tokens(conn, %{"access_token" => access_token, "id_token" => id_token}, client) do
+  def access_token(conn) do
+    get_session(conn, :access_token)
+  end
+
+  def delete(conn) do
     conn
-    |> put_access_token(access_token, client)
-    |> put_id_token(id_token, client)
+    |> delete_session(:current_user)
+    |> delete_session(:access_token)
   end
 
-  defp try_putting_refresh_token(conn, %{"refresh_token" => refresh_token} = resp, client) do
-    with exp_key when not is_nil(exp_key) <- refresh_token_expiration_key(client),
-         {:ok, exp} <- Map.fetch(resp, exp_key) do
-        put_refresh_token(conn, refresh_token, client, exp)
-      else
-        _ -> put_refresh_token(conn, refresh_token, client)
-      end
-  end
-
-  defp try_putting_refresh_token(conn, %{} = _, _), do: conn
-
-  def delete_tokens(conn, client) do
-    conn
-    |> delete_access_token(client)
-    |> delete_id_token(client)
-    |> delete_refresh_token(client)
-  end
-
-  # Access token
-
-  def get_access_token(conn, client) do
-    Conn.get_session(conn, access_token_key(client))
-  end
-
-  defp put_access_token(conn, access_token, client) when is_binary(access_token) do
-    Conn.put_session(conn, access_token_key(client), access_token)
-  end
-
-  defp delete_access_token(conn, client) do
-    Conn.delete_session(conn, access_token_key(client))
-  end
-
-  # ID token
-
-  def get_id_token(conn, client) do
-    Conn.get_session(conn, id_token_key(client))
-  end
-
-  defp put_id_token(conn, id_token, client) when is_binary(id_token) do
-    Conn.put_session(conn, id_token_key(client), id_token)
-  end
-
-  defp delete_id_token(conn, client) do
-    Conn.delete_session(conn, id_token_key(client))
-  end
-
-  def get_identity(conn, client) do
-    id_token = get_id_token(conn, client)
-
-    OpenIDConnect.verify(client, id_token)
-  end
-
-  # Refresh token
-
-  def get_refresh_token(conn, client) do
-    Map.get(conn.req_cookies, cookie_key(client))
-  end
-
-  defp put_refresh_token(conn, refresh_token, client) when is_binary(refresh_token) do
-    with {:ok, token_expiration} <- JwtHelpers.token_expiration(refresh_token),
-      expiration <- Date.diff_now(token_expiration) do
-        put_refresh_token(conn, refresh_token, client, expiration)
-      else
-        _ ->
-          put_refresh_token(conn, refresh_token, client, 604800) # 7 days expiration by default
-      end
-  end
-
-  defp put_refresh_token(conn, _, _), do: conn
-
-  # expiration in seconds
-  defp put_refresh_token(conn, refresh_token, client, expiration) when is_binary(refresh_token) do
-    Conn.put_resp_cookie(
-      conn,
-      cookie_key(client),
-      refresh_token,
-      http_only: true,
-      max_age: expiration
-    )
-  end
-
-  defp put_refresh_token(conn, _, _, _), do: conn
-
-  defp delete_refresh_token(conn, client) do
-    Conn.delete_resp_cookie(conn, cookie_key(client))
-  end
-
-  # Key helpers
-
-  def cookie_key(client) do
-    get_in(Application.get_env(:keen_auth, :clients), [client, :refresh_token_cookie_key]) || Atom.to_string(client) <> "_rt"
-  end
-
-  defp access_token_key(client) do
-    Atom.to_string(@access_token_base) <> "_" <> Atom.to_string(client)
-  end
-
-  defp id_token_key(client) do
-    Atom.to_string(@id_token_base) <> "_" <> Atom.to_string(client)
-  end
-
-  defp refresh_token_expiration_key(client) do
-    get_in(Application.get_env(:keen_auth, :clients), [client, :refresh_token_exp_key])
-  end
 end
