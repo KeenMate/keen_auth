@@ -15,8 +15,6 @@ defmodule KeenAuth.AuthController do
 
       @behaviour unquote(__MODULE__)
 
-      import unquote(__MODULE__)
-
       def new(conn, opts), do: unquote(__MODULE__).new(conn, opts)
       def callback(conn, opts), do: unquote(__MODULE__).callback(conn, opts)
       def delete(conn, opts), do: unquote(__MODULE__).delete(conn, opts)
