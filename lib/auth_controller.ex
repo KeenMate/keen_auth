@@ -20,7 +20,7 @@ defmodule KeenAuth.AuthController do
       def delete(conn, opts), do: unquote(__MODULE__).delete(conn, opts)
       def normalize(conn, user), do: unquote(__MODULE__).normalize(conn, user)
 
-      defoverridable [new: 2, delete: 2, callback: 2, normalize: 1]
+      defoverridable [new: 2, delete: 2, callback: 2, normalize: 2]
     end
   end
 
