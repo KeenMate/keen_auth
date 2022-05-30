@@ -18,6 +18,7 @@ defmodule KeenAuth.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
+      mod: {KeenAuth.Application, []},
       extra_applications: [:logger, :inets]
     ]
   end
