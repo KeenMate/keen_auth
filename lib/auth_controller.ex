@@ -18,16 +18,15 @@ defmodule KeenAuth.AuthController do
       def new(conn, opts), do: unquote(__MODULE__).new(conn, opts)
       def callback(conn, opts), do: unquote(__MODULE__).callback(conn, opts)
       def delete(conn, opts), do: unquote(__MODULE__).delete(conn, opts)
-      def normalize(conn, user), do: unquote(__MODULE__).normalize(conn, user)
 
-      defoverridable [new: 2, delete: 2, callback: 2, normalize: 2]
+      defoverridable unquote(__MODULE__)
     end
   end
 
   def new(conn, %{"provider" => provider}) do
     with {:ok, %{session_params: session_params, url: url}} <- request(String.to_existing_atom(provider)) do
       conn
-      |> put_session(:session_params, session_params)
+      |> put_session(:session_params, session_params |> IO.inspect(label: "Session params"))
       |> redirect(external: url)
     end
   end
@@ -35,10 +34,14 @@ defmodule KeenAuth.AuthController do
   def callback(conn, %{"provider" => provider} = opts) do
     {_, params} = Map.split(opts, ["provider"])
 
-    with {:ok, %{user: user, token: token}} <- make_callback(String.to_existing_atom(provider), params, get_session(conn, :session_params)) do
-      conn
-      |> Session.new(normalize(conn, user), token)
-      |> redirect(to: "/")
+    with {:ok, %{user: user, token: token}} <- make_callback(String.to_existing_atom(provider), params, get_session(conn, :session_params)),
+         user <- map_user(provider, user),
+         {:ok, conn, user} <- process(conn, provider, user),
+         {:ok, conn} <- store(conn, provider, user) do
+
+      # use redirect_uri (from querystring as well)
+      # put into session (dont forget to clean from session)
+      # |> redirect(to: "/")
     end
   end
 
@@ -50,11 +53,29 @@ defmodule KeenAuth.AuthController do
     end
   end
 
-  def normalize(_conn, user) do
-    user
+  defp map_user(provider, user) do
+    mod =
+      get_key_from_provider_config(provider, :mapper) || KeenAuth.UserMapper
+
+    mod.map(provider, user)
+  end
+
+  defp process(conn, provider, user) do
+    mod =
+      get_key_from_provider_config(provider, :processor) || KeenAuth.UserProcessor
+
+    mod.process(conn, provider, user)
+  end
+
+  defp store(conn, provider, user) do
+    mod =
+      get_key_from_provider_config(provider, :storage) || KeenAuth.UserStorage
+
+    mod.store(conn, provider, user)
   end
 
   # =============================================================================
+
 
   def request(provider) do
     strategy = get_strategy!(provider)
@@ -64,11 +85,21 @@ defmodule KeenAuth.AuthController do
 
   def make_callback(provider, params, session_params \\ %{}) do
     strategy = get_strategy!(provider)
+
+    auth_params = Assent.Config.get(strategy[:config], :authorization_params, [])
     config =
       strategy[:config]
       |> Assent.Config.put(:session_params, session_params)
+      |> Assent.Config.put(:authorization_params, Keyword.update(auth_params, :scope, "offline_access", fn scope -> "offline_access " <> scope end))
+      |> IO.inspect(label: "Final config")
 
     strategy[:strategy].callback(config, params) |> IO.inspect(label: "CAllback result")
+  end
+
+  def get_key_from_provider_config(provider, key) do
+    strategy = get_strategy!(provider)
+
+    strategy[key]
   end
 
   def get_strategy!(provider) do
