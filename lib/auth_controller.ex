@@ -68,7 +68,7 @@ defmodule KeenAuth.AuthController do
       strategy[:config]
       |> Assent.Config.put(:session_params, session_params)
 
-    strategy[:strategy].callback(config, params)
+    strategy[:strategy].callback(config, params) |> IO.inspect(label: "CAllback result")
   end
 
   def get_strategy!(provider) do

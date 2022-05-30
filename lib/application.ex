@@ -1,11 +1,11 @@
 defmodule KeenAuth.Application do
   use Application
 
-  def start (_opts) do
+  def start(_mode, _opts) do
     children =
       [
-        KeenAuth.TokenStorage,
-        workers_pool()
+        # KeenAuth.TokenStorage,
+        # workers_pool()
       ]
 
     Supervisor.start_link(children, strategy: :one_for_one)
