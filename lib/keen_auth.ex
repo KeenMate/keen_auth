@@ -31,6 +31,7 @@ defmodule KeenAuth do
     quote do
       scope "/:provider" do
         get "/new", unquote(auth_controller), :new
+        get "/callback", unquote(auth_controller), :callback
         post "/callback", unquote(auth_controller), :callback
       end
 
