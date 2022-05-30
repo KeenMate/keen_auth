@@ -11,6 +11,8 @@ defmodule KeenAuth.AuthController do
 
   defmacro __using__(_opts \\ []) do
     quote do
+      use Phoenix.Controller
+
       @behaviour unquote(__MODULE__)
 
       import unquote(__MODULE__)
