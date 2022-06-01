@@ -1,6 +1,9 @@
 defmodule KeenAuth.Storage do
-  @callback store(conn :: Plug.Conn.t(), provider :: atom(), user :: KeenAuth.User.t(), tokens :: KeenAuth.AuthController.tokens_map()) :: {:ok, Plug.Conn.t()}
+  alias KeenAuth.AuthController
+
+  @callback store(conn :: Plug.Conn.t(), provider :: atom(), oauth_response :: AuthController.oauth_callback_response()) :: {:ok, Plug.Conn.t()}
   @callback current_user(conn :: Plug.Conn.t()) :: KeenAuth.User.t() | nil
+  @callback delete(conn :: Plug.Conn.t()) :: Plug.Conn.t()
 
   @default_store KeenAuth.Storage.Session
 

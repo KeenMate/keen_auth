@@ -4,8 +4,8 @@ defmodule KeenAuth.User do
   @enforce_keys @keys
   defstruct @keys
 
-  @type t() :: %{
-    id: binary() | pos_integer(),
+  @type t() :: %__MODULE__{
+    id: binary(),
     username: binary(),
     display_name: binary(),
     email: binary()

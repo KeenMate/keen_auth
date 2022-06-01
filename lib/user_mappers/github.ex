@@ -3,6 +3,11 @@ defmodule KeenAuth.UserMappers.Github do
 
   @impl true
   def map(:github, user) do
-    user
+    %KeenAuth.User{
+      id: Integer.to_string(user["sub"]),
+      username: user["preferred_username"],
+      display_name: user["name"],
+      email: user["email"]
+    }
   end
 end

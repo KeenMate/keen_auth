@@ -22,7 +22,7 @@ defmodule KeenAuth.AuthController do
   }
 
   @type oauth_callback_response :: %{
-    user: map(),
+    user: KeenAuth.User.t() | map(),
     token: tokens_map()
   }
 
@@ -43,7 +43,7 @@ defmodule KeenAuth.AuthController do
   def new(conn, %{"provider" => provider} = params) do
     with {:ok, %{session_params: session_params, url: url}} <- get_authorization_uri(Binary.to_atom(provider)) do
       conn
-      |> put_session(:session_params, session_params |> IO.inspect(label: "Session params"))
+      |> put_session(:session_params, session_params)
       |> maybe_put_redirect_to(params)
       |> redirect(external: url)
     end
@@ -54,28 +54,30 @@ defmodule KeenAuth.AuthController do
     provider = Binary.to_atom(provider)
     {conn, session_params} = get_and_delete_session(conn, :session_params)
 
-    with {:ok, %{user: user, token: tokens} = oauth_callback_result} <- make_callback_back(provider, params, session_params),
+    with {:ok, %{user: user} = oauth_result} <- make_callback_back(provider, params, session_params),
          user <- map_user(provider, user),
-         oauth_callback_result <- Map.put(oauth_callback_result, :user, user),
-         {:ok, conn, user} <- process(conn, provider, oauth_callback_result),
-         {:ok, conn} <- store(conn, provider, user, tokens) do
+         oauth_result <- Map.put(oauth_result, :user, user),
+         {:ok, conn, oauth_result} <- process(conn, provider, oauth_result),
+         {:ok, conn} <- store(conn, provider, oauth_result) do
 
-      redirect_back(conn)
+      redirect_back(conn, params)
     end
-    |> IO.inspect(label: "Result of callback")
   end
 
-  def delete(conn, _opts) do
+  def delete(conn, params) do
     store = Storage.get_store()
 
     with user when not is_nil(user) <- store.current_user(conn) do
       conn
       |> store.delete()
-      |> redirect(to: "/")
+      |> redirect_back(params)
+    else
+      nil ->
+        redirect_back(conn, params)
     end
   end
 
-  @spec map_user(atom(), any) :: any
+  @spec map_user(atom(), map()) :: KeenAuth.User.t()
   def map_user(provider, user) do
     mod =
       get_key_from_provider_config(provider, :mapper) || @defeault_user_mapper
@@ -84,24 +86,29 @@ defmodule KeenAuth.AuthController do
   end
 
   @spec process(any, atom(), any) :: any
-  def process(conn, provider, oauth_callback_result) do
+  def process(conn, provider, oauth_result) do
     mod =
       get_key_from_provider_config(provider, :processor) || @defeault_processor
 
-    mod.process(conn, provider, oauth_callback_result)
+    mod.process(conn, provider, oauth_result)
   end
 
-  @spec store(Plug.Conn.t(), atom(), KeenAuth.User.t(), tokens_map()) :: any
-  def store(conn, provider, user, tokens) do
-    Storage.get_store().store(conn, provider, user, tokens)
+  @spec store(Plug.Conn.t(), atom(), oauth_callback_response()) :: any
+  def store(conn, provider, oauth_response) do
+    Storage.get_store().store(conn, provider, oauth_response)
   end
 
-  @spec redirect_back(Plug.Conn.t()) :: Plug.Conn.t()
-  def redirect_back(conn) do
+  @spec redirect_back(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def redirect_back(conn, params \\ %{}) do
+    redirect_to =
+      get_session(conn, :redirect_to)
+      || params["redirect_to"]
+      || "/"
+      |> IO.inspect(label: "Redirecting to")
+
     conn
-    |> redirect(to: get_session(conn, :redirect_to) || "/")
     |> delete_session(:redirect_to)
-    |> tap(fn conn -> Logger.debug("Conn after redirect: #{inspect conn}") end)
+    |> redirect(to: redirect_to)
   end
 
   @spec maybe_put_redirect_to(Plug.Conn.t(), map()) :: Plug.Conn.t()
@@ -134,7 +141,7 @@ defmodule KeenAuth.AuthController do
       |> Assent.Config.put(:authorization_params, Keyword.update(auth_params, :scope, "offline_access", fn scope -> "offline_access " <> scope end))
       |> IO.inspect(label: "Final config")
 
-    strategy[:strategy].callback(config, params) |> IO.inspect(label: "CAllback result")
+    strategy[:strategy].callback(config, params)
   end
 
   @spec get_key_from_provider_config(atom(), atom()) :: any

@@ -1,7 +1,10 @@
 defmodule KeenAuth.Processor do
-  @callback process(conn :: Plug.Conn.t(), provider :: atom(), response :: KeenAuth.AuthController.oauth_callback_response()) :: {:ok, Plug.Conn.t(), KeenAuth.User.t()} | Plug.Conn.t()
+  alias KeenAuth.AuthController
 
-  def process(conn, _provider, %{user: user}) do
-    {:ok, conn, user}
+  @callback process(conn :: Plug.Conn.t(), provider :: atom(), response :: AuthController.oauth_callback_response())
+    :: {:ok, Plug.Conn.t(), AuthController.oauth_callback_result()} | Plug.Conn.t()
+
+  def process(conn, _provider, oauth_response) do
+    {:ok, conn, oauth_response}
   end
 end
