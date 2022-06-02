@@ -6,7 +6,7 @@ defmodule KeenAuth.AuthController do
   use Phoenix.Controller
 
   alias KeenAuth.Helpers.Binary
-  alias KeenAuth.Storage
+  alias KeenAuth.Config
 
   require Logger
 
@@ -65,11 +65,11 @@ defmodule KeenAuth.AuthController do
   end
 
   def delete(conn, params) do
-    store = Storage.get_store()
+    storage = Config.get_storage()
 
-    with user when not is_nil(user) <- store.current_user(conn) do
+    with user when not is_nil(user) <- storage.current_user(conn) do
       conn
-      |> store.delete()
+      |> storage.delete()
       |> redirect_back(params)
     else
       nil ->
@@ -95,7 +95,7 @@ defmodule KeenAuth.AuthController do
 
   @spec store(Plug.Conn.t(), atom(), oauth_callback_response()) :: any
   def store(conn, provider, oauth_response) do
-    Storage.get_store().store(conn, provider, oauth_response)
+    Config.get_storage().store(conn, provider, oauth_response)
   end
 
   @spec redirect_back(Plug.Conn.t(), map()) :: Plug.Conn.t()

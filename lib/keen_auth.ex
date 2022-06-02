@@ -7,6 +7,7 @@ defmodule KeenAuth do
     auth_controller: MyAppWeb.AuthController,
     strategies: [
       azure_ad: [
+        token: MyAppWeb.AADToken,
         strategy: Assent.Strategy.Azure,
         config: [
           client_id: "REPLACE_WITH_CLIENT_ID",
@@ -15,6 +16,7 @@ defmodule KeenAuth do
         ]
       ],
       github: [
+        token: MyAppWeb.GithubToken,
         strategy: Assent.Strategy.Github,
         config: [
           client_id: "REPLACE_WITH_CLIENT_ID",
