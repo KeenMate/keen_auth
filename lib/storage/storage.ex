@@ -9,5 +9,4 @@ defmodule KeenAuth.Storage do
   @callback get_id_token(conn :: Plug.Conn.t()) :: binary() | nil
   @callback get_refresh_token(conn :: Plug.Conn.t()) :: binary() | nil
   @callback delete(conn :: Plug.Conn.t()) :: Plug.Conn.t()
-
 end

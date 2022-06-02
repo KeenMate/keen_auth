@@ -10,7 +10,7 @@ defmodule KeenAuth.Storage.Session do
     conn =
       conn
       |> put_provider(provider)
-      |> put_access_token(provider, tokens["access_token"])
+      |> put_tokens(provider, tokens)
       |> put_current_user(user)
 
     {:ok, conn}
@@ -77,7 +77,14 @@ defmodule KeenAuth.Storage.Session do
     put_session(conn, :current_user, user)
   end
 
-  def put_access_token(conn, provider \\ nil, access_token \\ nil)
+  def put_tokens(conn, provider, tokens) do
+    conn
+    |> put_access_token(provider, tokens["access_token"])
+    |> put_id_token(provider, tokens["id_token"])
+    |> put_refresh_token(provider, tokens["refresh_token"])
+  end
+
+  def put_access_token(conn, provider \\ nil, token \\ nil)
 
   def put_access_token(conn, _provider, nil) do
     conn
@@ -85,12 +92,33 @@ defmodule KeenAuth.Storage.Session do
     |> delete_session(:access_token)
   end
 
-  def put_access_token(conn, provider, access_token) do
+  def put_access_token(conn, provider, token) do
     token_mod = Config.get_token(provider)
-    with {:ok, claims} <- token_mod.verify(access_token) do
+    with {:ok, claims} <- token_mod.verify(token) do
       conn
       |> put_session(:access_claims, claims)
-      |> put_session(:access_token, access_token)
+      |> put_session(:access_token, token)
     end
+  end
+
+  def put_id_token(conn, provider \\ nil, token \\ nil)
+
+  def put_id_token(conn, _provider, nil) do
+    delete_session(conn, :id_token)
+  end
+
+  def put_id_token(conn, _provider, token) do
+    put_session(conn, :id_token, token)
+  end
+
+  @spec put_refresh_token(Plug.Conn.t(), any, any) :: Plug.Conn.t()
+  def put_refresh_token(conn, provider \\ nil, token \\ nil)
+
+  def put_refresh_token(conn, _provider, nil) do
+    delete_session(conn, :refresh_token)
+  end
+
+  def put_refresh_token(conn, _provider, token) do
+    put_session(conn, :refresh_token, token)
   end
 end
