@@ -23,19 +23,12 @@ defmodule KeenAuth.Storage.Session do
 
   @impl true
   def authenticated?(conn) do
-    false
+    current_user(conn) != nil
   end
 
   @impl true
-  def get_roles(conn) do
-    case get_session(conn, :access_claims) do
-      nil ->
-        # Maybe raise error of unauthenticated user?
-        []
-
-      claims ->
-
-    end
+  def get_roles(_conn) do
+    raise "If you want to use roles, you need to create custom storage and implement get_roles/1 callback"
   end
 
   @impl true

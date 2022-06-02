@@ -3,6 +3,7 @@ defmodule KeenAuth.Plug.RequireRoles do
 
   alias KeenAuth.Config
   alias KeenAuth.Helpers.Roles
+  alias Plug.Conn
 
   def init(opts) do
     %{
