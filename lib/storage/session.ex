@@ -94,7 +94,7 @@ defmodule KeenAuth.Storage.Session do
 
   def put_access_token(conn, provider, token) do
     token_mod = Config.get_token(provider)
-    with {:ok, claims} <- token_mod.verify(token) do
+    with {:ok, claims} <- token_mod.verify(token |> IO.inspect(label: "Access token to verify")) do
       conn
       |> put_session(:access_claims, claims)
       |> put_session(:access_token, token)
