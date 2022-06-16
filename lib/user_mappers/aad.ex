@@ -3,6 +3,11 @@ defmodule KeenAuth.UserMappers.AzureAD do
 
   @impl true
   def map(:aad, user) do
-    user
+    %KeenAuth.User{
+      id: user["sub"],
+      username: user["preferred_username"],
+      display_name: user["name"],
+      email: user["preferred_username"]
+    }
   end
 end
