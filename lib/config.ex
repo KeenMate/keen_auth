@@ -1,10 +1,9 @@
 defmodule KeenAuth.Config do
-  def get_storage() do
-    Application.get_env(:keen_auth, :storage) || KeenAuth.Storage.Session
-  end
-
-  def get_storage(provider) do
-    get_strategy_config(provider)[:storage] || KeenAuth.Storage.Session
+  @spec get_storage(atom()) :: module()
+  def get_storage(provider \\ nil) do
+    get_strategy_config(provider)[:storage]
+    || Application.get_env(:keen_auth, :storage)
+    || KeenAuth.Storage.Session
   end
 
   def get_token(provider) do
