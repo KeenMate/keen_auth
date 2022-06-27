@@ -6,29 +6,32 @@ defmodule KeenAuth.Plug.RequireRoles do
   alias Plug.Conn
 
   def init(opts) do
-    %{
+    [
       storage: Config.get_storage(),
-      operator: opts[:operator] || :and,
-      roles: opts[:roles] || []
-    }
+      operator: :and,
+      roles: []
+    ]
+    |> Keyword.merge(opts)
   end
 
-  def call(conn, %{roles: []}), do: conn
-
   def call(conn, opts) do
-    %{
-      storage: storage,
-      roles: roles,
-      operator: op
-    } = opts
+    storage = opts[:storage]
+    roles = opts[:roles]
+    op = opts[:op]
 
-    conn
-    |> storage.get_roles()
-    |> check_roles(op, roles)
-    |> if do
-      conn
-    else
-      set_forbidden(conn)
+    case roles do
+      [] ->
+        conn
+
+      roles ->
+        conn
+        |> storage.get_roles()
+        |> check_roles(op, roles)
+        |> if do
+          conn
+        else
+          handle_forbidden(conn, opts)
+        end
     end
   end
 
@@ -64,7 +67,12 @@ defmodule KeenAuth.Plug.RequireRoles do
     )
   end
 
-  defp set_forbidden(conn) do
-    Conn.put_status(conn, 403)
+  defp handle_forbidden(conn, opts) do
+    case opts[:handler] do
+      {mod, fun} ->
+        apply(mod, fun, [conn])
+      nil ->
+        Conn.put_status(conn, 403)
+    end
   end
 end

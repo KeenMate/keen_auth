@@ -3,7 +3,7 @@ defmodule KeenAuth.Plug.FetchUser do
 
   alias KeenAuth.Config
 
-  import Plug.Conn, only: [assign: 3]
+  # import Plug.Conn, only: [assign: 3]
 
   @impl true
   def init(_opts) do
@@ -17,8 +17,8 @@ defmodule KeenAuth.Plug.FetchUser do
     storage = opts.storage
     if storage.authenticated?(conn) do
       conn
-      |> assign(:current_user, storage.current_user(conn))
-      |> assign(:roles, storage.get_roles(conn))
+      |> storage.put_current_user(storage.current_user(conn))
+      # |> assign(:roles, storage.get_roles(conn))
     else
       conn
     end
