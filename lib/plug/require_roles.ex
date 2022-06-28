@@ -4,6 +4,7 @@ defmodule KeenAuth.Plug.RequireRoles do
   alias KeenAuth.Config
   alias KeenAuth.Helpers.Roles
   alias Plug.Conn
+  alias Phoenix.Controller
 
   def init(opts) do
     [
@@ -72,7 +73,10 @@ defmodule KeenAuth.Plug.RequireRoles do
       {mod, fun} ->
         apply(mod, fun, [conn])
       nil ->
-        Conn.put_status(conn, 403)
+        conn
+        |> Conn.put_status(403)
+        |> Controller.put_flash(:error, "You are not allowed to view this content")
+        |> Conn.halt()
     end
   end
 end
