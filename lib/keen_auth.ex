@@ -40,4 +40,9 @@ defmodule KeenAuth do
       get "/delete", unquote(auth_controller), :delete
     end
   end
+
+  @spec current_user(Plug.Conn.t()) :: KeenAuth.User.t() | map() | term()
+  def current_user(conn) do
+    conn.assigns[:current_user]
+  end
 end

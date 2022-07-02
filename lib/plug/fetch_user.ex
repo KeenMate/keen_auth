@@ -1,23 +1,24 @@
 defmodule KeenAuth.Plug.FetchUser do
+  @moduledoc """
+  Fetches current user using storage from config and assigns it to conn
+  """
+
   @behaviour Plug
 
-  alias KeenAuth.Config
+  alias KeenAuth.Storage
 
-  # import Plug.Conn, only: [assign: 3]
+  import Plug.Conn, only: [assign: 3]
 
   @impl true
   def init(_opts) do
-    %{
-      storage: Config.get_storage()
-    }
+    nil
   end
 
   @impl true
-  def call(conn, opts) do
-    storage = opts.storage
-    if storage.authenticated?(conn) do
+  def call(conn, _opts) do
+    if Storage.authenticated?(conn) do
       conn
-      |> storage.put_current_user(storage.current_user(conn))
+      |> assign(:current_user, Storage.current_user(conn))
       # |> assign(:roles, storage.get_roles(conn))
     else
       conn

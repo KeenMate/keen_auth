@@ -3,7 +3,7 @@ defmodule KeenAuth.Storage.Session do
 
   alias KeenAuth.Config
 
-  import Plug.Conn, only: [put_session: 3, get_session: 2, delete_session: 2]
+  import Plug.Conn, only: [assign: 3, put_session: 3, get_session: 2, delete_session: 2]
 
   @impl true
   def store(conn, provider, %{user: user, token: tokens}) do
@@ -52,6 +52,7 @@ defmodule KeenAuth.Storage.Session do
     get_session(conn, :provider)
   end
 
+  @impl true
   def put_provider(conn, provider \\ nil)
 
   def put_provider(conn, nil) do
@@ -62,6 +63,7 @@ defmodule KeenAuth.Storage.Session do
     put_session(conn, :provider, provider)
   end
 
+  @impl true
   def put_current_user(conn, user \\ nil)
 
   def put_current_user(conn, nil) do
