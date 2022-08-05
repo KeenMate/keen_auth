@@ -29,7 +29,8 @@ defmodule KeenAuth.MixProject do
       {:assent, "~> 0.2.0"},
       {:certifi, "~> 2.4"},
       {:ssl_verify_fun, "~> 1.1"},
-      {:joken, "~> 2.4.1"}
+      {:joken, "~> 2.4.1"},
+      {:ecto, "~> 3.8"}
     ]
   end
 
