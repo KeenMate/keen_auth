@@ -11,7 +11,7 @@ defmodule KeenAuth.Storage.Session do
       conn
       |> put_provider(provider)
       |> put_tokens(provider, tokens)
-      |> put_current_user(user)
+      |> put_current_user(provider, user)
 
     {:ok, conn}
   end
@@ -64,13 +64,13 @@ defmodule KeenAuth.Storage.Session do
   end
 
   @impl true
-  def put_current_user(conn, user \\ nil)
+  def put_current_user(conn, provider \\ nil, user \\ nil)
 
-  def put_current_user(conn, nil) do
+  def put_current_user(conn, _provider, nil) do
     delete_session(conn, :current_user)
   end
 
-  def put_current_user(conn, user) do
+  def put_current_user(conn, _provider, user) do
     put_session(conn, :current_user, user)
   end
 
@@ -92,6 +92,7 @@ defmodule KeenAuth.Storage.Session do
 
   def put_access_token(conn, provider, token) do
     token_mod = Config.get_token(provider)
+
     with {:ok, claims} <- token_mod.verify(token) do
       conn
       |> put_session(:access_claims, claims)

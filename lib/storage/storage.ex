@@ -10,8 +10,8 @@ defmodule KeenAuth.Storage do
   @callback get_refresh_token(conn :: Plug.Conn.t()) :: binary() | nil
   @callback delete(conn :: Plug.Conn.t()) :: Plug.Conn.t()
   @callback put_provider(conn :: Plug.Conn.t(), provider :: atom()) :: Plug.Conn.t()
-  @callback put_tokens(conn :: Plug.Conn.t(), AuthController.tokens_map()) :: Plug.Conn.t()
-  @callback put_current_user(conn :: Plug.Conn.t(), KeenAuth.User.t() | map()) :: Plug.Conn.t()
+  @callback put_tokens(conn :: Plug.Conn.t(), provider :: atom(), AuthController.tokens_map()) :: Plug.Conn.t()
+  @callback put_current_user(conn :: Plug.Conn.t(), provider :: atom(), KeenAuth.User.t() | map()) :: Plug.Conn.t()
 
   @storage Config.get_storage()
 
@@ -47,12 +47,12 @@ defmodule KeenAuth.Storage do
     @storage.put_provider(conn, provider)
   end
 
-  def put_tokens(conn, tokens) do
-    @storage.put_tokens(conn, tokens)
+  def put_tokens(conn, provider, tokens) do
+    @storage.put_tokens(conn, provider, tokens)
   end
 
-  def put_current_user(conn, user) do
-    @storage.put_current_user(conn, user)
+  def put_current_user(conn, provider, user) do
+    @storage.put_current_user(conn, provider, user)
   end
 
 end
