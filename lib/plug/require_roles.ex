@@ -10,7 +10,7 @@ defmodule KeenAuth.Plug.RequireRoles do
   def init(opts) do
     [
       storage: Config.get_storage(),
-      operator: :and,
+      op: :and,
       roles: []
     ]
     |> Keyword.merge(opts)
@@ -19,11 +19,11 @@ defmodule KeenAuth.Plug.RequireRoles do
   def call(conn, opts) do
     storage = opts[:storage]
     roles = opts[:roles]
-    operator = opts[:operator]
+    op = opts[:op]
 
     conn
     |> storage.current_user()
-    |> check_user_roles(operator, roles)
+    |> check_user_roles(op, roles)
     |> if do
       conn
     else
@@ -31,12 +31,12 @@ defmodule KeenAuth.Plug.RequireRoles do
     end
   end
 
-  defp check_user_roles(current_user, operator, roles) do
-    check_roles(current_user.roles, operator, roles)
+  defp check_user_roles(current_user, op, roles) do
+    check_roles(current_user.roles, op, roles)
   end
 
-  defp check_roles(current_roles, operator, required_roles) do
-    case operator do
+  defp check_roles(current_roles, op, required_roles) do
+    case op do
       :or -> has_any_role(current_roles, required_roles)
       :and -> has_all_roles(current_roles, required_roles)
     end
