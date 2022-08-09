@@ -3,7 +3,7 @@ defmodule KeenAuth.Storage.Session do
 
   alias KeenAuth.Config
 
-  import Plug.Conn, only: [assign: 3, put_session: 3, get_session: 2, delete_session: 2]
+  import Plug.Conn, only: [put_session: 3, get_session: 2, delete_session: 2]
 
   @impl true
   def store(conn, provider, %{user: user, token: tokens}) do
