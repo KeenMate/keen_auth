@@ -26,14 +26,18 @@ defmodule KeenAuth.Plug.RequireRoles do
 
       roles ->
         conn
-        |> storage.get_roles()
-        |> check_roles(op, roles)
+        |> storage.current_user()
+        |> check_user_roles(op, roles)
         |> if do
           conn
         else
           handle_forbidden(conn, opts)
         end
     end
+  end
+
+  defp check_user_roles(current_user, op, roles) do
+    check_roles(current_user.roles, op, roles)
   end
 
   defp check_roles(current_roles, op, roles) do

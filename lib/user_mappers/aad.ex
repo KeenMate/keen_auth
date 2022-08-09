@@ -7,7 +7,9 @@ defmodule KeenAuth.UserMappers.AzureAD do
       id: user["sub"],
       username: user["preferred_username"],
       display_name: user["name"],
-      email: user["preferred_username"]
+      email: user["preferred_username"],
+      roles: user["roles"] || [],
+      permissions: []
     }
   end
 end

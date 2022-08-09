@@ -7,7 +7,9 @@ defmodule KeenAuth.UserMappers.Facebook do
       id: user["sub"],
       username: nil,
       display_name: user["name"],
-      email: user["email"]
+      email: user["email"],
+      roles: [],
+      permissions: []
     }
   end
 end

@@ -1,7 +1,7 @@
 defmodule KeenAuth.User do
   alias Ecto.Changeset
 
-  @keys [:id, :username, :display_name, :email]
+  @keys [:id, :username, :display_name, :email, :roles, :permissions]
 
   # @enforce_keys @keys
   defstruct @keys
@@ -10,14 +10,18 @@ defmodule KeenAuth.User do
     id: binary(),
     username: binary(),
     display_name: binary(),
-    email: binary()
+    email: binary(),
+    roles: list(binary()),
+    permissions: list(binary())
   }
 
   @changeset_fields %{
     id: :string,
     username: :string,
     display_name: :string,
-    email: :string
+    email: :string,
+    roles: {:array, :string},
+    permissions: {:array, :string}
   }
 
   def new(params \\ %{}) do
