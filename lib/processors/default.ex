@@ -1,4 +1,4 @@
-defmodule KeenAuth.Processor do
+defmodule KeenAuth.Processor.Default do
   alias KeenAuth.AuthController
 
   @callback process(conn :: Plug.Conn.t(), provider :: atom(), response :: AuthController.oauth_callback_response())

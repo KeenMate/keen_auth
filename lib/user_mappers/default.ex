@@ -1,4 +1,4 @@
-defmodule KeenAuth.UserMappers.Common do
+defmodule KeenAuth.UserMappers.Default do
   @behaviour KeenAuth.UserMapper
 
   @impl true

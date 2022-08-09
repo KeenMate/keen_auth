@@ -10,9 +10,6 @@ defmodule KeenAuth.AuthController do
 
   require Logger
 
-  @defeault_user_mapper KeenAuth.UserMappers.Common
-  @defeault_processor KeenAuth.Processor
-
   @type tokens_map() :: %{
     optional(:access_token) => binary(),
     optional(:id_token) => binary(),
@@ -79,16 +76,14 @@ defmodule KeenAuth.AuthController do
 
   @spec map_user(atom(), map()) :: KeenAuth.User.t()
   def map_user(provider, user) do
-    mod =
-      get_key_from_provider_config(provider, :mapper) || @defeault_user_mapper
+    mod = Config.get_user_mapper(provider)
 
     mod.map(provider, user)
   end
 
   @spec process(any, atom(), any) :: any
   def process(conn, provider, oauth_result) do
-    mod =
-      get_key_from_provider_config(provider, :processor) || @defeault_processor
+    mod = Config.get_processor(provider)
 
     mod.process(conn, provider, oauth_result)
   end
@@ -114,6 +109,7 @@ defmodule KeenAuth.AuthController do
   @spec maybe_put_redirect_to(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def maybe_put_redirect_to(conn, params) do
     redirect_to = Map.get(params, "redirect_to")
+
     if not is_nil(redirect_to) do
       put_session(conn, :redirect_to, redirect_to)
     else
@@ -125,14 +121,14 @@ defmodule KeenAuth.AuthController do
 
   @spec get_authorization_uri(atom()) :: {:ok, %{session_params: map(), url: binary()}}
   def get_authorization_uri(provider) do
-    strategy = get_strategy!(provider)
+    strategy = Config.get_strategy!(provider)
 
     strategy[:strategy].authorize_url(strategy[:config])
   end
 
   @spec make_callback_back(atom(), map(), map()) :: {:ok, oauth_callback_response()}
   def make_callback_back(provider, params, session_params \\ %{}) do
-    strategy = get_strategy!(provider)
+    strategy = Config.get_strategy!(provider)
 
     auth_params = Assent.Config.get(strategy[:config], :authorization_params, [])
     config =
@@ -142,18 +138,6 @@ defmodule KeenAuth.AuthController do
       |> IO.inspect(label: "Final config")
 
     strategy[:strategy].callback(config, params)
-  end
-
-  @spec get_key_from_provider_config(atom(), atom()) :: any
-  def get_key_from_provider_config(provider, key) do
-    strategy = get_strategy!(provider)
-
-    strategy[key]
-  end
-
-  @spec get_strategy!(atom()) :: keyword()
-  def get_strategy!(provider) do
-    Application.get_env(:keen_auth, :strategies)[provider] || raise "No provider configuration for #{provider}"
   end
 
   defp get_and_delete_session(conn, key) do
