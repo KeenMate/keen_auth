@@ -42,4 +42,17 @@ defmodule KeenAuth.Storage do
   def delete(conn) do
     @storage.delete(conn)
   end
+
+  def put_provider(conn, provider) do
+    @storage.put_provider(conn, provider)
+  end
+
+  def put_tokens(conn, tokens) do
+    @storage.put_tokens(conn, tokens)
+  end
+
+  def put_current_user(conn, user) do
+    @storage.put_current_user(conn, user)
+  end
+
 end
