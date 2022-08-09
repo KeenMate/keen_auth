@@ -11,4 +11,11 @@ defmodule KeenAuth.Helpers.Roles do
     |> String.downcase()
   end
 
+  def has_all_roles(user_roles, required_roles) do
+    Enum.all?(required_roles || [], &(&1 in (user_roles || [])))
+  end
+
+  def has_any_role(user_roles, required_roles) do
+    Enum.any?(required_roles || [], &Enum.member?(user_roles || [], &1))
+  end
 end

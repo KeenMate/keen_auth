@@ -1,8 +1,9 @@
 defmodule KeenAuth.Plug.RequireRoles do
   @behaviour Plug
 
+  import KeenAuth.Helpers.Roles
+
   alias KeenAuth.Config
-  alias KeenAuth.Helpers.Roles
   alias Plug.Conn
   alias Phoenix.Controller
 
@@ -20,19 +21,13 @@ defmodule KeenAuth.Plug.RequireRoles do
     roles = opts[:roles]
     op = opts[:op]
 
-    case roles do
-      [] ->
-        conn
-
-      roles ->
-        conn
-        |> storage.current_user()
-        |> check_user_roles(op, roles)
-        |> if do
-          conn
-        else
-          handle_forbidden(conn, opts)
-        end
+    conn
+    |> storage.current_user()
+    |> check_user_roles(op, roles)
+    |> if do
+      conn
+    else
+      handle_forbidden(conn, opts)
     end
   end
 
@@ -40,36 +35,11 @@ defmodule KeenAuth.Plug.RequireRoles do
     check_roles(current_user.roles, op, roles)
   end
 
-  defp check_roles(current_roles, op, roles) do
-    check_roles(current_roles, nil, op, roles)
-  end
-
-  defp check_roles(_user_roles, true, _op, []), do: true
-
-  defp check_roles(_user_roles, _acc, _op, []), do: false
-
-  defp check_roles(_user_roles, false, :and, _roles_to_check), do: false
-
-  defp check_roles(user_roles, acc, :and, [role_to_check | other_roles_to_check])
-       when acc in [nil, true] do
-    check_roles(
-      user_roles,
-      Roles.normalize_role(role_to_check) in user_roles,
-      :and,
-      other_roles_to_check
-    )
-  end
-
-  defp check_roles(_user_roles, true, :or, _roles_to_check), do: true
-
-  defp check_roles(user_roles, acc, :or, [role_to_check | other_roles_to_check])
-       when acc in [nil, false] do
-    check_roles(
-      user_roles,
-      Roles.normalize_role(role_to_check) in user_roles,
-      :or,
-      other_roles_to_check
-    )
+  defp check_roles(current_roles, op, required_roles) do
+    case op do
+      :or -> has_any_role(current_roles, required_roles)
+      :and -> has_all_roles(current_roles, required_roles)
+    end
   end
 
   defp handle_forbidden(conn, opts) do
