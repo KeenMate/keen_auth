@@ -74,6 +74,7 @@ defmodule KeenAuth.Storage.Session do
     put_session(conn, :current_user, user)
   end
 
+  @impl true
   def put_tokens(conn, provider, tokens) do
     conn
     |> put_access_token(provider, tokens["access_token"])
