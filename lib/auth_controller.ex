@@ -121,14 +121,14 @@ defmodule KeenAuth.AuthController do
 
   @spec get_authorization_uri(atom()) :: {:ok, %{session_params: map(), url: binary()}}
   def get_authorization_uri(provider) do
-    strategy = Config.get_strategy!(provider)
+    strategy = Config.get_strategy_config!(provider)
 
     strategy[:strategy].authorize_url(strategy[:config])
   end
 
   @spec make_callback_back(atom(), map(), map()) :: {:ok, oauth_callback_response()}
   def make_callback_back(provider, params, session_params \\ %{}) do
-    strategy = Config.get_strategy!(provider)
+    strategy = Config.get_strategy_config!(provider)
 
     auth_params = Assent.Config.get(strategy[:config], :authorization_params, [])
     config =
