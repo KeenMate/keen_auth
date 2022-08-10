@@ -89,7 +89,7 @@ defmodule KeenAuth.Plug.Authorize do
   # Forbidden handler
   defp resolve_authorization(conn, false, handler) do
     conn
-    |> handler.call(:forbidden)
+    |> handler.call(:unauthorized)
     |> Plug.Conn.halt()
   end
 

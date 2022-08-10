@@ -9,9 +9,4 @@ defmodule KeenAuth.Plug.AuthorizationErrorHandler do
     conn
     |> send_resp(401, "Unauthorized")
   end
-
-  def call(conn, :forbidden) do
-    conn
-    |> send_resp(403, "Forbidden")
-  end
 end

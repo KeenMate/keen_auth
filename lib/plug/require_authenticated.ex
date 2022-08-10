@@ -1,9 +1,10 @@
 defmodule KeenAuth.Plug.RequireAuthenticated do
   @behaviour Plug
 
+  alias Plug.Conn
   alias KeenAuth.Config
 
-  import Plug.Conn
+  import Conn
   import Phoenix.Controller, only: [redirect: 2]
 
   def init(opts) do
@@ -20,17 +21,24 @@ defmodule KeenAuth.Plug.RequireAuthenticated do
     if storage.authenticated?(conn) do
       conn
     else
-      if login_path = opts[:login_path] do
-        cond do
-          is_function(login_path) ->
-            redirect(conn, to: login_path.(conn))
+      handle_unauthenticated(conn, opts)
+    end
+  end
 
-          is_binary(login_path) ->
-            redirect(conn, to: login_path)
-        end
-      else
-        put_status(conn, 401)
-      end
+  def handle_unauthenticated(%Conn{request_path: request_path} = conn, opts) do
+    login_path = opts[:login_path]
+
+    cond do
+      is_function(login_path) ->
+        redirect(conn, to: login_path.(conn, request_path))
+
+      is_binary(login_path) ->
+        redirect(conn, to: login_path)
+
+      true ->
+        conn
+        |> KeenAuth.Plug.AuthorizationErrorHandler.call(:unauthorized)
+        |> halt()
     end
   end
 end
