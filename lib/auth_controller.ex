@@ -99,7 +99,6 @@ defmodule KeenAuth.AuthController do
       get_session(conn, :redirect_to)
       || params["redirect_to"]
       || "/"
-      |> IO.inspect(label: "Redirecting to")
 
     conn
     |> delete_session(:redirect_to)
@@ -135,7 +134,6 @@ defmodule KeenAuth.AuthController do
       strategy[:config]
       |> Assent.Config.put(:session_params, session_params)
       |> Assent.Config.put(:authorization_params, Keyword.update(auth_params, :scope, "offline_access", fn scope -> "offline_access " <> scope end))
-      |> IO.inspect(label: "Final config")
 
     strategy[:strategy].callback(config, params)
   end

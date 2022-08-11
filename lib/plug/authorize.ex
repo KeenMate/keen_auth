@@ -7,21 +7,28 @@ defmodule KeenAuth.Plug.Authorize do
 
   @default_operation :and
   @default_handler KeenAuth.Plug.AuthorizationErrorHandler
-  # @unauthorized_codes [401, 403]
 
-  def roles(conn, opts) do
+  def roles(conn, opts) when is_map(opts) do
+    ensure(conn, :roles, opts)
+  end
+
+  def roles(conn, opts) when is_list(opts) do
     config = build_config(opts)
 
     ensure(conn, :roles, config)
   end
 
-  def permissions(conn, opts) do
+  def permissions(conn, opts) when is_map(opts) do
+    ensure(conn, :permissions, opts)
+  end
+
+  def permissions(conn, opts) when is_list(opts) do
     config = build_config(opts)
 
     ensure(conn, :permissions, config)
   end
 
-  defp build_config(opts) do
+  def build_config(opts) do
     %{
       storage: Keyword.get(opts, :storage, Config.get_storage()),
       actions: Keyword.get(opts, :only) |> allowed_actions(),

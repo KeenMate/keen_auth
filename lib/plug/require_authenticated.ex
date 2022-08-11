@@ -10,7 +10,7 @@ defmodule KeenAuth.Plug.RequireAuthenticated do
   def init(opts) do
     [
       storage: Config.get_storage(),
-      login_path: Application.get_env(:keen_auth, :login_path)
+      redirect: Application.get_env(:keen_auth, :unauthorized_redirect)
     ]
     |> Keyword.merge(opts)
   end
@@ -26,14 +26,14 @@ defmodule KeenAuth.Plug.RequireAuthenticated do
   end
 
   def handle_unauthenticated(%Conn{request_path: request_path} = conn, opts) do
-    login_path = opts[:login_path]
+    application_redirect = opts[:redirect]
 
     cond do
-      is_function(login_path) ->
-        redirect(conn, to: login_path.(conn, request_path))
+      is_function(application_redirect) ->
+        redirect(conn, to: application_redirect.(conn, request_path))
 
-      is_binary(login_path) ->
-        redirect(conn, to: login_path)
+      is_binary(application_redirect) ->
+        redirect(conn, to: application_redirect)
 
       true ->
         conn
