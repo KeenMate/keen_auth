@@ -8,7 +8,7 @@ defmodule KeenAuth.User do
 
   @type t() :: %__MODULE__{
     id: binary(),
-    username: binary(),
+    username: binary() | nil,
     display_name: binary(),
     email: binary(),
     roles: list(binary()),

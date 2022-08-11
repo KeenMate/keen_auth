@@ -1,5 +1,5 @@
-defmodule KeenAuth.UserMappers.Github do
-  @behaviour KeenAuth.UserMapper
+defmodule KeenAuth.Mapper.Github do
+  @behaviour KeenAuth.Mapper
 
   @impl true
   def map(:github, user) do

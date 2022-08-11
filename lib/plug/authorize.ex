@@ -3,7 +3,7 @@ defmodule KeenAuth.Plug.Authorize do
 
   import KeenAuth.Helpers.Roles
 
-  alias KeenAuth.Config
+  alias KeenAuth.Storage
 
   @default_operation :and
   @default_handler KeenAuth.Plug.AuthorizationErrorHandler
@@ -30,7 +30,7 @@ defmodule KeenAuth.Plug.Authorize do
 
   def build_config(opts) do
     %{
-      storage: Keyword.get(opts, :storage, Config.get_storage()),
+      storage: Keyword.get(opts, :storage),
       actions: Keyword.get(opts, :only) |> allowed_actions(),
       roles: Keyword.get(opts, :roles, []) |> Enum.map(&normalize_role/1),
       permissions: Keyword.get(opts, :permissions, []) |> Enum.map(&normalize_role/1),
@@ -41,6 +41,7 @@ defmodule KeenAuth.Plug.Authorize do
 
   defp ensure(conn, :permissions, %{storage: storage, actions: actions, permissions: permissions, operation: operation, handler: handler}) do
     if is_nil(actions) or conn.private.phoenix_action in actions do
+      storage = storage || Storage.current_storage(conn)
       allowed = ensure_user_permissions(storage.current_user(conn), permissions, operation)
 
       conn
@@ -52,6 +53,7 @@ defmodule KeenAuth.Plug.Authorize do
 
   defp ensure(conn, :roles, %{storage: storage, actions: actions, roles: roles, operation: operation, handler: handler}) do
     if is_nil(actions) or conn.private.phoenix_action in actions do
+      storage = storage || Storage.current_storage(conn)
       allowed = ensure_user_roles(storage.current_user(conn), roles, operation)
 
       conn

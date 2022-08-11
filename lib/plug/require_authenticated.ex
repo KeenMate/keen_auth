@@ -2,21 +2,18 @@ defmodule KeenAuth.Plug.RequireAuthenticated do
   @behaviour Plug
 
   alias Plug.Conn
+  alias KeenAuth.Storage
   alias KeenAuth.Config
 
   import Conn
   import Phoenix.Controller, only: [redirect: 2]
 
   def init(opts) do
-    [
-      storage: Config.get_storage(),
-      redirect: Application.get_env(:keen_auth, :unauthorized_redirect)
-    ]
-    |> Keyword.merge(opts)
+    opts
   end
 
   def call(conn, opts) do
-    storage = opts[:storage]
+    storage = opts[:storage] || Storage.current_storage(conn)
 
     if storage.authenticated?(conn) do
       conn
@@ -26,7 +23,7 @@ defmodule KeenAuth.Plug.RequireAuthenticated do
   end
 
   def handle_unauthenticated(%Conn{request_path: request_path} = conn, opts) do
-    application_redirect = opts[:redirect]
+    application_redirect = opts[:redirect] || config_redirect(conn)
 
     cond do
       is_function(application_redirect) ->
@@ -40,5 +37,11 @@ defmodule KeenAuth.Plug.RequireAuthenticated do
         |> KeenAuth.Plug.AuthorizationErrorHandler.call(:unauthorized)
         |> halt()
     end
+  end
+
+  defp config_redirect(conn) do
+    conn
+    |> KeenAuth.Plug.fetch_config()
+    |> Config.get(:unauthorized_redirect)
   end
 end

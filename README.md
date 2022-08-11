@@ -34,7 +34,7 @@ Starting from a new project with ecto
       strategies: [
         aad: [
           strategy: Assent.Strategy.AzureAD,
-          mapper: KeenAuth.UserMappers.AzureAD,
+          mapper: KeenAuth.Mappers.AzureAD,
           processor: common_auth_processor,
           config: [
             tenant_id: "REPLACE_WITH_PROPPER_VALUE",
@@ -45,7 +45,7 @@ Starting from a new project with ecto
         ],
         github: [
           strategy: Assent.Strategy.Github,
-          mapper: KeenAuth.UserMappers.Github,
+          mapper: KeenAuth.Mappers.Github,
           processor: common_auth_processor,
           config: [
             client_id: "REPLACE_WITH_PROPPER_VALUE",
@@ -55,7 +55,7 @@ Starting from a new project with ecto
         ],
         facebook: [
           strategy: Assent.Strategy.Facebook,
-          mapper: KeenAuth.UserMappers.Facebook,
+          mapper: KeenAuth.Mappers.Facebook,
           processor: common_auth_processor,
           config: [
             client_id: "REPLACE_WITH_PROPPER_VALUE",

@@ -1,5 +1,4 @@
 defmodule KeenAuth.Helpers.Roles do
-
   def normalize_role(role) when is_atom(role) do
     role
     |> Atom.to_string()

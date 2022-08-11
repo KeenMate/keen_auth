@@ -1,7 +1,7 @@
 defmodule KeenAuth.Storage.Session do
   @behaviour KeenAuth.Storage
 
-  alias KeenAuth.Config
+  alias KeenAuth.Token
 
   import Plug.Conn, only: [put_session: 3, get_session: 2, delete_session: 2]
 
@@ -91,7 +91,10 @@ defmodule KeenAuth.Storage.Session do
   end
 
   def put_access_token(conn, provider, token) do
-    token_mod = Config.get_token(provider)
+    token_mod =
+      conn
+      |> KeenAuth.Plug.fetch_config()
+      |> Token.get_token(provider)
 
     with {:ok, claims} <- token_mod.verify(token) do
       conn

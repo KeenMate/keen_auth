@@ -19,6 +19,7 @@ defmodule KeenAuth.Plug.FetchUser do
     if Storage.authenticated?(conn) do
       conn
       |> assign(:current_user, Storage.current_user(conn))
+
       # |> assign(:roles, storage.get_roles(conn))
     else
       conn

@@ -1,42 +1,58 @@
 defmodule KeenAuth.Config do
-  @default_user_mapper KeenAuth.UserMappers.Default
-  @default_processor KeenAuth.Processors.Default
-
-  @spec get_storage(atom()) :: module()
-  def get_storage(provider \\ nil) do
-    get_strategy_config(provider)[:storage]
-    || Application.get_env(:keen_auth, :storage)
-    || KeenAuth.Storage.Session
+  @moduledoc """
+  Methods to parse and modify configurations.
+  """
+  @type t :: Keyword.t()
+  defmodule ConfigError do
+    @moduledoc false
+    defexception [:message]
   end
 
-  def get_token(provider) do
-    get_strategy_config(provider)[:token] || KeenAuth.Token
+  @doc """
+  Gets the key value from the configuration.
+
+  If not found, it'll fall back to environment config, and lastly to the
+  default value which is `nil` if not specified.
+  """
+  @spec get(t(), atom(), any()) :: any()
+  def get(config, key, default \\ nil) do
+    case Keyword.get(config, key, :not_found) do
+      :not_found -> get_env_config(config, key, default)
+      value -> value
+    end
   end
 
-  @spec get_strategy_config(atom()) :: keyword() | nil
-  def get_strategy_config(provider) do
-    Application.get_env(:keen_auth, :strategies)[provider]
+  defp get_env_config(config, key, default, env_key \\ :keen_auth) do
+    config
+    |> Keyword.get(:otp_app)
+    |> case do
+      nil -> Application.get_all_env(env_key)
+      otp_app -> Application.get_env(otp_app, env_key, [])
+    end
+    |> Keyword.get(key, default)
   end
 
-  @spec get_strategy_config!(atom()) :: keyword()
-  def get_strategy_config!(provider) do
-    Application.get_env(:keen_auth, :strategies)[provider] || raise "No provider configuration for #{provider}"
+  @doc """
+  Puts a new key value to the configuration.
+  """
+  @spec put(t(), atom(), any()) :: t()
+  def put(config, key, value) do
+    Keyword.put(config, key, value)
   end
 
-  @spec get_user_mapper(atom()) :: module()
-  def get_user_mapper(provider) do
-    get_strategy_config(provider)[:mapper] || @default_user_mapper
+  @doc """
+  Merges two configurations.
+  """
+  @spec merge(t(), t()) :: t()
+  def merge(l_config, r_config) do
+    Keyword.merge(l_config, r_config)
   end
 
-  @spec get_processor(atom()) :: module()
-  def get_processor(provider) do
-    get_strategy_config(provider)[:processor] || @default_processor
+  @doc """
+  Raise a ConfigError exception.
+  """
+  @spec raise_error(binary()) :: no_return()
+  def raise_error(message) do
+    raise ConfigError, message: message
   end
-
-  # @spec get_key_from_provider_config(atom(), atom()) :: any
-  # def get_key_from_provider_config(provider, key) do
-  #   strategy = get_strategy!(provider)
-
-  #   strategy[key]
-  # end
 end

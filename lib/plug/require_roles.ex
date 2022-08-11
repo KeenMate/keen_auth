@@ -3,13 +3,12 @@ defmodule KeenAuth.Plug.RequireRoles do
 
   import KeenAuth.Helpers.Roles
 
-  alias KeenAuth.Config
+  alias KeenAuth.Storage
   alias Plug.Conn
   alias Phoenix.Controller
 
   def init(opts) do
     [
-      storage: Config.get_storage(),
       op: :and,
       roles: []
     ]
@@ -17,7 +16,7 @@ defmodule KeenAuth.Plug.RequireRoles do
   end
 
   def call(conn, opts) do
-    storage = opts[:storage]
+    storage = opts[:storage] || Storage.current_storage(conn)
     roles = opts[:roles]
     op = opts[:op]
 
@@ -46,6 +45,7 @@ defmodule KeenAuth.Plug.RequireRoles do
     case opts[:handler] do
       {mod, fun} ->
         apply(mod, fun, [conn])
+
       nil ->
         conn
         |> Conn.put_status(403)

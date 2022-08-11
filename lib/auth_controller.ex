@@ -6,7 +6,11 @@ defmodule KeenAuth.AuthController do
   use Phoenix.Controller
 
   alias KeenAuth.Helpers.Binary
-  alias KeenAuth.Config
+  alias KeenAuth.Mapper
+  alias KeenAuth.Processor
+  alias KeenAuth.Storage
+  alias KeenAuth.Strategy
+  alias Plug.Conn
 
   require Logger
 
@@ -38,7 +42,7 @@ defmodule KeenAuth.AuthController do
   end
 
   def new(conn, %{"provider" => provider} = params) do
-    with {:ok, %{session_params: session_params, url: url}} <- get_authorization_uri(Binary.to_atom(provider)) do
+    with {:ok, %{session_params: session_params, url: url}} <- get_authorization_uri(conn, Binary.to_atom(provider)) do
       conn
       |> put_session(:session_params, session_params)
       |> maybe_put_redirect_to(params)
@@ -51,8 +55,8 @@ defmodule KeenAuth.AuthController do
     provider = Binary.to_atom(provider)
     {conn, session_params} = get_and_delete_session(conn, :session_params)
 
-    with {:ok, %{user: user} = oauth_result} <- make_callback_back(provider, params, session_params),
-         user <- map_user(provider, user),
+    with {:ok, %{user: user} = oauth_result} <- make_callback_back(conn, provider, params, session_params),
+         user <- map_user(conn, provider, user),
          oauth_result <- Map.put(oauth_result, :user, user),
          {:ok, conn, oauth_result} <- process(conn, provider, oauth_result),
          {:ok, conn} <- store(conn, provider, oauth_result) do
@@ -62,7 +66,7 @@ defmodule KeenAuth.AuthController do
   end
 
   def delete(conn, params) do
-    storage = Config.get_storage()
+    storage = Storage.current_storage(conn)
 
     with user when not is_nil(user) <- storage.current_user(conn) do
       conn
@@ -74,23 +78,25 @@ defmodule KeenAuth.AuthController do
     end
   end
 
-  @spec map_user(atom(), map()) :: KeenAuth.User.t()
-  def map_user(provider, user) do
-    mod = Config.get_user_mapper(provider)
+  @spec map_user(Conn.t(), atom(), map()) :: KeenAuth.User.t()
+  def map_user(conn, provider, user) do
+    mod = Mapper.current_mapper(conn, provider)
 
     mod.map(provider, user)
   end
 
-  @spec process(any, atom(), any) :: any
+  @spec process(Conn.t(), atom(), any) :: any
   def process(conn, provider, oauth_result) do
-    mod = Config.get_processor(provider)
+    mod = Processor.current_processor(conn, provider)
 
     mod.process(conn, provider, oauth_result)
   end
 
   @spec store(Plug.Conn.t(), atom(), oauth_callback_response()) :: any
   def store(conn, provider, oauth_response) do
-    Config.get_storage().store(conn, provider, oauth_response)
+    mod = Storage.current_storage(conn)
+
+    mod.store(conn, provider, oauth_response)
   end
 
   @spec redirect_back(Plug.Conn.t(), map()) :: Plug.Conn.t()
@@ -118,16 +124,16 @@ defmodule KeenAuth.AuthController do
 
   # ==== OAuth flow
 
-  @spec get_authorization_uri(atom()) :: {:ok, %{session_params: map(), url: binary()}}
-  def get_authorization_uri(provider) do
-    strategy = Config.get_strategy_config!(provider)
+  @spec get_authorization_uri(Conn.t(), atom()) :: {:ok, %{session_params: map(), url: binary()}}
+  def get_authorization_uri(conn, provider) do
+    strategy = Strategy.current_strategy!(conn, provider)
 
     strategy[:strategy].authorize_url(strategy[:config])
   end
 
-  @spec make_callback_back(atom(), map(), map()) :: {:ok, oauth_callback_response()}
-  def make_callback_back(provider, params, session_params \\ %{}) do
-    strategy = Config.get_strategy_config!(provider)
+  @spec make_callback_back(Conn.t(), atom(), map(), map()) :: {:ok, oauth_callback_response()}
+  def make_callback_back(conn, provider, params, session_params \\ %{}) do
+    strategy = Strategy.current_strategy!(conn, provider)
 
     auth_params = Assent.Config.get(strategy[:config], :authorization_params, [])
     config =
