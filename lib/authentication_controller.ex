@@ -1,4 +1,4 @@
-defmodule KeenAuth.AuthController do
+defmodule KeenAuth.AuthenticationController do
   @callback new(conn :: Plug.Conn.t(), any()) :: Plug.Conn.t()
   @callback callback(conn :: Plug.Conn.t(), any()) :: Plug.Conn.t()
   @callback delete(conn :: Plug.Conn.t(), any()) :: Plug.Conn.t()
@@ -15,17 +15,17 @@ defmodule KeenAuth.AuthController do
   require Logger
 
   @type tokens_map() :: %{
-    optional(:access_token) => binary(),
-    optional(:id_token) => binary(),
-    optional(:refresh_token) => binary()
+          optional(:access_token) => binary(),
+          optional(:id_token) => binary(),
+          optional(:refresh_token) => binary()
 
-    # TODO: Make sure that other fields like expiration are included here as well
-  }
+          # TODO: Make sure that other fields like expiration are included here as well
+        }
 
   @type oauth_callback_response :: %{
-    user: KeenAuth.User.t() | map(),
-    token: tokens_map()
-  }
+          user: KeenAuth.User.t() | map(),
+          token: tokens_map()
+        }
 
   defmacro __using__(_opts \\ []) do
     quote do
@@ -33,9 +33,9 @@ defmodule KeenAuth.AuthController do
 
       @behaviour unquote(__MODULE__)
 
-      def new(conn, opts), do: unquote(__MODULE__).new(conn, opts)
-      def callback(conn, opts), do: unquote(__MODULE__).callback(conn, opts)
-      def delete(conn, opts), do: unquote(__MODULE__).delete(conn, opts)
+      def new(conn, params), do: unquote(__MODULE__).new(conn, params)
+      def callback(conn, params), do: unquote(__MODULE__).callback(conn, params)
+      def delete(conn, params), do: unquote(__MODULE__).delete(conn, params)
 
       defoverridable unquote(__MODULE__)
     end
@@ -56,11 +56,9 @@ defmodule KeenAuth.AuthController do
     {conn, session_params} = get_and_delete_session(conn, :session_params)
 
     with {:ok, %{user: user} = oauth_result} <- make_callback_back(conn, provider, params, session_params),
-         user <- map_user(conn, provider, user),
-         oauth_result <- Map.put(oauth_result, :user, user),
-         {:ok, conn, oauth_result} <- process(conn, provider, oauth_result),
-         {:ok, conn} <- store(conn, provider, oauth_result) do
-
+         mapped_user <- map_user(conn, provider, user),
+         {:ok, conn, mapped_user, oauth_result} <- process(conn, provider, mapped_user, oauth_result),
+         {:ok, conn} <- store(conn, provider, mapped_user, oauth_result) do
       redirect_back(conn, params)
     end
   end
@@ -85,26 +83,26 @@ defmodule KeenAuth.AuthController do
     mod.map(provider, user)
   end
 
-  @spec process(Conn.t(), atom(), any) :: any
-  def process(conn, provider, oauth_result) do
+  @spec process(Conn.t(), atom(), KeenAuth.User.t() | map(), any) :: any
+  def process(conn, provider, mapped_user, oauth_result) do
     mod = Processor.current_processor(conn, provider)
 
-    mod.process(conn, provider, oauth_result)
+    mod.process(conn, provider, mapped_user, oauth_result)
   end
 
-  @spec store(Plug.Conn.t(), atom(), oauth_callback_response()) :: any
-  def store(conn, provider, oauth_response) do
+  @spec store(Plug.Conn.t(), atom(), KeenAuth.User.t() | map(), oauth_callback_response()) :: any
+  def store(conn, provider, mapped_user, oauth_response) do
     mod = Storage.current_storage(conn)
 
-    mod.store(conn, provider, oauth_response)
+    mod.store(conn, provider, mapped_user, oauth_response)
   end
 
   @spec redirect_back(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def redirect_back(conn, params \\ %{}) do
     redirect_to =
-      get_session(conn, :redirect_to)
-      || params["redirect_to"]
-      || "/"
+      get_session(conn, :redirect_to) ||
+        params["redirect_to"] ||
+        "/"
 
     conn
     |> delete_session(:redirect_to)
@@ -136,10 +134,14 @@ defmodule KeenAuth.AuthController do
     strategy = Strategy.current_strategy!(conn, provider)
 
     auth_params = Assent.Config.get(strategy[:config], :authorization_params, [])
+
     config =
       strategy[:config]
       |> Assent.Config.put(:session_params, session_params)
-      |> Assent.Config.put(:authorization_params, Keyword.update(auth_params, :scope, "offline_access", fn scope -> "offline_access " <> scope end))
+      |> Assent.Config.put(
+        :authorization_params,
+        Keyword.update(auth_params, :scope, "offline_access", fn scope -> "offline_access " <> scope end)
+      )
 
     strategy[:strategy].callback(config, params)
   end

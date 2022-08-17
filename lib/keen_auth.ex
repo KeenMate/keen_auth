@@ -4,7 +4,7 @@ defmodule KeenAuth do
 
   ```
   config :keen_auth,
-    auth_controller: MyAppWeb.AuthController,
+    auth_controller: MyAppWeb.AuthenticationController,
     strategies: [
       azure_ad: [
         token: MyAppWeb.AADToken,
@@ -29,7 +29,9 @@ defmodule KeenAuth do
   """
 
   defmacro authentication_routes() do
-    auth_controller = Application.get_env(:keen_auth, :auth_controller, KeenAuth.AuthController)
+    # TODO since `auth_controller` cannot be retrieved based on OTP app configuration, route to concrete controller in `AuthenticationController` and move default implementation elsewhere
+    auth_controller = Application.get_env(:keen_auth, :auth_controller, KeenAuth.AuthenticationController)
+
     quote do
       scope "/:provider" do
         get "/new", unquote(auth_controller), :new

@@ -1,10 +1,15 @@
 defmodule KeenAuth.Storage do
-  alias KeenAuth.AuthController
+  alias KeenAuth.AuthenticationController
   alias KeenAuth.Config
 
   @default_storage KeenAuth.Storage.Session
 
-  @callback store(conn :: Plug.Conn.t(), provider :: atom(), oauth_response :: AuthController.oauth_callback_response()) :: {:ok, Plug.Conn.t()}
+  @callback store(
+              conn :: Plug.Conn.t(),
+              provider :: atom(),
+              mapped_user :: KeenAuth.User.t() | map(),
+              oauth_response :: AuthenticationController.oauth_callback_response() | nil
+            ) :: {:ok, Plug.Conn.t()}
   @callback current_user(conn :: Plug.Conn.t()) :: any() | nil
   @callback authenticated?(conn :: Plug.Conn.t()) :: boolean()
   @callback get_access_token(conn :: Plug.Conn.t()) :: binary() | nil
@@ -12,11 +17,11 @@ defmodule KeenAuth.Storage do
   @callback get_refresh_token(conn :: Plug.Conn.t()) :: binary() | nil
   @callback delete(conn :: Plug.Conn.t()) :: Plug.Conn.t()
   @callback put_provider(conn :: Plug.Conn.t(), provider :: atom()) :: Plug.Conn.t()
-  @callback put_tokens(conn :: Plug.Conn.t(), provider :: atom(), AuthController.tokens_map()) :: Plug.Conn.t()
+  @callback put_tokens(conn :: Plug.Conn.t(), provider :: atom(), AuthenticationController.tokens_map()) :: Plug.Conn.t()
   @callback put_current_user(conn :: Plug.Conn.t(), provider :: atom(), KeenAuth.User.t() | map()) :: Plug.Conn.t()
 
-  def store(conn, provider, oauth_response) do
-    current_storage(conn).store(conn, provider, oauth_response)
+  def store(conn, provider, mapped_user, oauth_response) do
+    current_storage(conn).store(conn, provider, mapped_user, oauth_response)
   end
 
   def current_user(conn) do

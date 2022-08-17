@@ -6,12 +6,12 @@ defmodule KeenAuth.Storage.Session do
   import Plug.Conn, only: [put_session: 3, get_session: 2, delete_session: 2]
 
   @impl true
-  def store(conn, provider, %{user: user, token: tokens}) do
+  def store(conn, provider, mapped_user, oauth_response) do
     conn =
       conn
       |> put_provider(provider)
-      |> put_tokens(provider, tokens)
-      |> put_current_user(provider, user)
+      |> put_tokens(provider, oauth_response[:token])
+      |> put_current_user(provider, mapped_user)
 
     {:ok, conn}
   end

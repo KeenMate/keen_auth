@@ -1,14 +1,19 @@
 defmodule KeenAuth.Processor do
-  alias KeenAuth.AuthController
+  alias KeenAuth.AuthenticationController
   alias KeenAuth.Strategy
 
   @default_processor KeenAuth.Processors.Default
 
-  @callback process(conn :: Plug.Conn.t(), provider :: atom(), response :: AuthController.oauth_callback_response()) ::
-              {:ok, Plug.Conn.t(), AuthController.oauth_callback_result()} | Plug.Conn.t()
+  @callback process(
+              conn :: Plug.Conn.t(),
+              provider :: atom(),
+              mapped_user :: KeenAuth.User.t() | map(),
+              response :: AuthenticationController.oauth_callback_response() | nil
+            ) ::
+              {:ok, Plug.Conn.t(), KeenAuth.User.t() | map(), AuthenticationController.oauth_callback_result() | nil} | Plug.Conn.t()
 
-  def process(conn, provider, oauth_response) do
-    current_processor(conn, provider).process(conn, provider, oauth_response)
+  def process(conn, provider, mapped_user, oauth_response) do
+    current_processor(conn, provider).process(conn, provider, mapped_user, oauth_response)
   end
 
   def current_processor(conn, provider) do
