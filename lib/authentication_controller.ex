@@ -55,10 +55,10 @@ defmodule KeenAuth.AuthenticationController do
     provider = Binary.to_atom(provider)
     {conn, session_params} = get_and_delete_session(conn, :session_params)
 
-    with {:ok, %{user: user} = oauth_result} <- make_callback_back(conn, provider, params, session_params),
-         mapped_user <- map_user(conn, provider, user),
-         {:ok, conn, mapped_user, oauth_result} <- process(conn, provider, mapped_user, oauth_result),
-         {:ok, conn} <- store(conn, provider, mapped_user, oauth_result) do
+    with {:ok, %{user: raw_user} = oauth_result} <- make_callback_back(conn, provider, params, session_params),
+         mapped_user = map_user(conn, provider, raw_user),
+         {:ok, conn, user, oauth_result} <- process(conn, provider, mapped_user, oauth_result),
+         {:ok, conn} <- store(conn, provider, user, oauth_result) do
       redirect_back(conn, params)
     end
   end

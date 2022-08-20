@@ -20,14 +20,15 @@ defmodule KeenAuth.EmailAuthenticationController do
   end
 
   # TODO Throttling
-  def new(conn, %{"username" => username, "password" => password} = params) do
+  def new(conn, params) do
     provider = :email
 
-    with {:ok, raw_user} <- EmailAuthenticationHandler.authenticate(conn, username, password),
+    with {:ok, raw_user} <- EmailAuthenticationHandler.authenticate(conn, params),
+         response = %{user: raw_user, tokens: nil},
          mapped_user = Mapper.current_mapper(conn, provider).map(raw_user, provider),
-         {:ok, conn, result} <- Processor.process(conn, provider, mapped_user, nil),
-         {:ok, conn} <- Storage.store(conn, provider, mapped_user, result) do
-      # EmailAuthenticationHandler.handle_authenticated(conn, result.user)
+         {:ok, conn, user, result} <- Processor.process(conn, provider, mapped_user, response),
+         {:ok, conn} <- Storage.store(conn, provider, user, result) do
+      EmailAuthenticationHandler.handle_authenticated(conn, user)
 
       conn
       |> redirect_back(params)
@@ -36,7 +37,7 @@ defmodule KeenAuth.EmailAuthenticationController do
         Process.sleep(Enum.random(100..300//10))
         # Sleep for random amount to prevent timing attacks
 
-        EmailAuthenticationHandler.handle_unauthorized(conn, params)
+        EmailAuthenticationHandler.handle_unauthenticated(conn, params)
     end
   end
 

@@ -11,6 +11,8 @@ defmodule KeenAuth.Storage.Session do
       conn
       |> put_provider(provider)
       |> put_tokens(provider, oauth_response[:token])
+      # TODO save oath response roles and groups
+      # |> put_provider_roles(provider, oauth_response[:user][:roles])
       |> put_current_user(provider, mapped_user)
 
     {:ok, conn}
