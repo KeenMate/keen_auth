@@ -1,4 +1,5 @@
 defmodule KeenAuth.EmailAuthenticationHandler do
+  alias KeenAuth.Strategy
   alias KeenAuth.Config
 
   @callback authenticate(conn :: Plug.Conn.t(), params :: map()) :: {:ok, map()} | {:error, :unauthenticated}
@@ -24,6 +25,6 @@ defmodule KeenAuth.EmailAuthenticationHandler do
   end
 
   def get_authentication_handler!(config) do
-    Config.get(config, :authentication_handler) || Config.raise_error("Authentication handler not defined")
+    Strategy.get_strategy!(config, :email)[:authentication_handler] || Config.raise_error("Authentication handler not defined")
   end
 end

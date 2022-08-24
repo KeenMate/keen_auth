@@ -31,15 +31,31 @@ defmodule KeenAuth do
   defmacro authentication_routes() do
     # TODO since `auth_controller` cannot be retrieved based on OTP app configuration, route to concrete controller in `AuthenticationController` and move default implementation elsewhere
     auth_controller = Application.get_env(:keen_auth, :auth_controller, KeenAuth.AuthenticationController)
+    email_enabled = Application.get_env(:keen_auth, :email_enabled, false)
 
-    quote do
-      scope "/:provider" do
-        get "/new", unquote(auth_controller), :new
-        get "/callback", unquote(auth_controller), :callback
-        post "/callback", unquote(auth_controller), :callback
+    email_block =
+      if email_enabled do
+        email_auth_controller = Application.get_env(:keen_auth, :email_auth_controller, KeenAuth.EmailAuthenticationController)
+
+        quote do
+          scope "/email" do
+            post("/new", unquote(email_auth_controller), :new)
+          end
+        end
+      else
+        nil
       end
 
-      get "/delete", unquote(auth_controller), :delete
+    quote do
+      unquote(email_block)
+
+      scope "/:provider" do
+        get("/new", unquote(auth_controller), :new)
+        get("/callback", unquote(auth_controller), :callback)
+        post("/callback", unquote(auth_controller), :callback)
+      end
+
+      get("/delete", unquote(auth_controller), :delete)
     end
   end
 

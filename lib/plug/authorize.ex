@@ -42,7 +42,15 @@ defmodule KeenAuth.Plug.Authorize do
   defp ensure(conn, :permissions, %{storage: storage, actions: actions, permissions: permissions, operation: operation, handler: handler}) do
     if is_nil(actions) or conn.private.phoenix_action in actions do
       storage = storage || Storage.current_storage(conn)
-      allowed = ensure_user_permissions(storage.current_user(conn), permissions, operation)
+      user = storage.current_user(conn)
+
+      current_permissions =
+        case user do
+          %{permissions: permissions} -> permissions
+          _ -> []
+        end
+
+      allowed = ensure_user_permissions(current_permissions, permissions, operation)
 
       conn
       |> resolve_authorization(allowed, handler)
@@ -54,7 +62,18 @@ defmodule KeenAuth.Plug.Authorize do
   defp ensure(conn, :roles, %{storage: storage, actions: actions, roles: roles, operation: operation, handler: handler}) do
     if is_nil(actions) or conn.private.phoenix_action in actions do
       storage = storage || Storage.current_storage(conn)
-      allowed = ensure_user_roles(storage.current_user(conn), roles, operation)
+      user = storage.current_user(conn)
+
+      IO.inspect(user, label: "user")
+
+      current_roles =
+        case user do
+          %{roles: roles} -> roles
+          %{groups: groups} -> groups
+          _ -> []
+        end
+
+      allowed = ensure_user_roles(current_roles, roles, operation)
 
       conn
       |> resolve_authorization(allowed, handler)
@@ -65,13 +84,13 @@ defmodule KeenAuth.Plug.Authorize do
 
   defp ensure_user_permissions(nil, _, _), do: nil
 
-  defp ensure_user_permissions(%{permissions: current_permissions}, required_permissions, :or) do
+  defp ensure_user_permissions(current_permissions, required_permissions, :or) do
     current_permissions
     |> Enum.map(&normalize_role/1)
     |> has_any_role(required_permissions)
   end
 
-  defp ensure_user_permissions(%{permissions: current_permissions}, required_permissions, :and) do
+  defp ensure_user_permissions(current_permissions, required_permissions, :and) do
     current_permissions
     |> Enum.map(&normalize_role/1)
     |> has_all_roles(required_permissions)
@@ -79,13 +98,13 @@ defmodule KeenAuth.Plug.Authorize do
 
   defp ensure_user_roles(nil, _, _), do: nil
 
-  defp ensure_user_roles(%{roles: current_roles}, required_roles, :or) do
+  defp ensure_user_roles(current_roles, required_roles, :or) do
     current_roles
     |> Enum.map(&normalize_role/1)
     |> has_any_role(required_roles)
   end
 
-  defp ensure_user_roles(%{roles: current_roles}, required_roles, :and) do
+  defp ensure_user_roles(current_roles, required_roles, :and) do
     current_roles
     |> Enum.map(&normalize_role/1)
     |> has_all_roles(required_roles)
