@@ -37,7 +37,7 @@ defmodule KeenAuth.Plug.Authorize do
   def build_config(opts) do
     %{
       actions: Keyword.get(opts, :only) |> allowed_actions(),
-      required_values: Keyword.fetch!(opts, :required_values) |> Enum.map(&normalize_value/1),
+      required: Keyword.fetch!(opts, :required) |> Enum.map(&normalize_value/1),
       operation: Keyword.get(opts, :op, @default_operation),
       handler: Keyword.get(opts, :error_handler, @default_handler)
     }
@@ -61,7 +61,7 @@ defmodule KeenAuth.Plug.Authorize do
     current_user
     |> fetch_user_values(key)
     |> Enum.map(&normalize_value/1)
-    |> check_user_values(config.required_values, config.operation)
+    |> check_user_values(config.required, config.operation)
   end
 
   defp check_user_values(_, nil, _), do: false
