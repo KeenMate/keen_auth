@@ -27,10 +27,14 @@ defmodule KeenAuth.Plug.RequireAuthenticated do
 
     cond do
       is_function(application_redirect) ->
-        redirect(conn, to: application_redirect.(conn, request_path))
+        conn
+        |> redirect(to: application_redirect.(conn, request_path))
+        |> halt()
 
       is_binary(application_redirect) ->
-        redirect(conn, to: application_redirect)
+        conn
+        |> redirect(to: application_redirect)
+        |> halt()
 
       true ->
         conn

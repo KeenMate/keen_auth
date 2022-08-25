@@ -37,7 +37,7 @@ defmodule KeenAuth.Plug.Authorize do
   def build_config(opts) do
     %{
       actions: Keyword.get(opts, :only) |> allowed_actions(),
-      required_values: Keyword.get(opts, :required_values, []) |> Enum.map(&normalize_value/1),
+      required_values: Keyword.fetch!(opts, :required_values) |> Enum.map(&normalize_value/1),
       operation: Keyword.get(opts, :op, @default_operation),
       handler: Keyword.get(opts, :error_handler, @default_handler)
     }
@@ -45,19 +45,26 @@ defmodule KeenAuth.Plug.Authorize do
 
   defp check(conn, config, key) do
     if is_nil(config.actions) or conn.private.phoenix_action in config.actions do
-      user_values =
-        conn
-        |> KeenAuth.current_user()
-        |> fetch_user_values(key)
-        |> Enum.map(&normalize_value/1)
-
-      allowed = check_user_values(user_values, config.required_values, config.operation)
+      current_user = KeenAuth.current_user(conn)
+      allowed = is_allowed(current_user, config, key)
 
       resolve_authorization(conn, allowed, config.handler)
     else
       conn
     end
   end
+
+  # Unauthenticated user not allowed
+  defp is_allowed(nil, _, _), do: false
+
+  defp is_allowed(current_user, config, key) do
+    current_user
+    |> fetch_user_values(key)
+    |> Enum.map(&normalize_value/1)
+    |> check_user_values(config.required_values, config.operation)
+  end
+
+  defp check_user_values(_, nil, _), do: false
 
   defp check_user_values(user_values, required_values, :or) do
     user_values
@@ -72,7 +79,6 @@ defmodule KeenAuth.Plug.Authorize do
   defp fetch_user_values(user, :permissions), do: user.permissions
   defp fetch_user_values(user, :roles), do: user.roles
   defp fetch_user_values(user, :groups), do: user.groups
-
 
   defp allowed_actions(nil), do: nil
   defp allowed_actions(action) when is_atom(action), do: [action]
