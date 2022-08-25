@@ -1,114 +1,78 @@
 defmodule KeenAuth.Plug.Authorize do
   require Logger
 
-  import KeenAuth.Helpers.Roles
-
-  alias KeenAuth.Storage
-
   @default_operation :and
   @default_handler KeenAuth.Plug.AuthorizationErrorHandler
 
+  def groups(conn, opts) when is_map(opts) do
+    check(conn, opts, :groups)
+  end
+
+  def groups(conn, opts) when is_list(opts) do
+    config = build_config(opts)
+
+    check(conn, config, :groups)
+  end
+
   def roles(conn, opts) when is_map(opts) do
-    ensure(conn, :roles, opts)
+    check(conn, opts, :roles)
   end
 
   def roles(conn, opts) when is_list(opts) do
     config = build_config(opts)
 
-    ensure(conn, :roles, config)
+    check(conn, config, :roles)
   end
 
   def permissions(conn, opts) when is_map(opts) do
-    ensure(conn, :permissions, opts)
+    check(conn, opts, :permissions)
   end
 
   def permissions(conn, opts) when is_list(opts) do
     config = build_config(opts)
 
-    ensure(conn, :permissions, config)
+    check(conn, config, :permissions)
   end
 
   def build_config(opts) do
     %{
-      storage: Keyword.get(opts, :storage),
       actions: Keyword.get(opts, :only) |> allowed_actions(),
-      roles: Keyword.get(opts, :roles, []) |> Enum.map(&normalize_role/1),
-      permissions: Keyword.get(opts, :permissions, []) |> Enum.map(&normalize_role/1),
+      required_values: Keyword.get(opts, :required_values, []) |> Enum.map(&normalize_value/1),
       operation: Keyword.get(opts, :op, @default_operation),
       handler: Keyword.get(opts, :error_handler, @default_handler)
     }
   end
 
-  defp ensure(conn, :permissions, %{storage: storage, actions: actions, permissions: permissions, operation: operation, handler: handler}) do
-    if is_nil(actions) or conn.private.phoenix_action in actions do
-      storage = storage || Storage.current_storage(conn)
-      user = storage.current_user(conn)
+  defp check(conn, config, key) do
+    if is_nil(config.actions) or conn.private.phoenix_action in config.actions do
+      user_values =
+        conn
+        |> KeenAuth.current_user()
+        |> fetch_user_values(key)
+        |> Enum.map(&normalize_value/1)
 
-      current_permissions =
-        case user do
-          %{permissions: permissions} -> permissions
-          _ -> []
-        end
+      allowed = check_user_values(user_values, config.required_values, config.operation)
 
-      allowed = ensure_user_permissions(current_permissions, permissions, operation)
-
-      conn
-      |> resolve_authorization(allowed, handler)
+      resolve_authorization(conn, allowed, config.handler)
     else
       conn
     end
   end
 
-  defp ensure(conn, :roles, %{storage: storage, actions: actions, roles: roles, operation: operation, handler: handler}) do
-    if is_nil(actions) or conn.private.phoenix_action in actions do
-      storage = storage || Storage.current_storage(conn)
-      user = storage.current_user(conn)
-
-      IO.inspect(user, label: "user")
-
-      current_roles =
-        case user do
-          %{roles: roles} -> roles
-          %{groups: groups} -> groups
-          _ -> []
-        end
-
-      allowed = ensure_user_roles(current_roles, roles, operation)
-
-      conn
-      |> resolve_authorization(allowed, handler)
-    else
-      conn
-    end
+  defp check_user_values(user_values, required_values, :or) do
+    user_values
+    |> has_any_value(required_values)
   end
 
-  defp ensure_user_permissions(nil, _, _), do: nil
-
-  defp ensure_user_permissions(current_permissions, required_permissions, :or) do
-    current_permissions
-    |> Enum.map(&normalize_role/1)
-    |> has_any_role(required_permissions)
+  defp check_user_values(user_values, required_values, :and) do
+    user_values
+    |> has_all_values(required_values)
   end
 
-  defp ensure_user_permissions(current_permissions, required_permissions, :and) do
-    current_permissions
-    |> Enum.map(&normalize_role/1)
-    |> has_all_roles(required_permissions)
-  end
+  defp fetch_user_values(user, :permissions), do: user.permissions
+  defp fetch_user_values(user, :roles), do: user.roles
+  defp fetch_user_values(user, :groups), do: user.groups
 
-  defp ensure_user_roles(nil, _, _), do: nil
-
-  defp ensure_user_roles(current_roles, required_roles, :or) do
-    current_roles
-    |> Enum.map(&normalize_role/1)
-    |> has_any_role(required_roles)
-  end
-
-  defp ensure_user_roles(current_roles, required_roles, :and) do
-    current_roles
-    |> Enum.map(&normalize_role/1)
-    |> has_all_roles(required_roles)
-  end
 
   defp allowed_actions(nil), do: nil
   defp allowed_actions(action) when is_atom(action), do: [action]
@@ -121,12 +85,24 @@ defmodule KeenAuth.Plug.Authorize do
     |> Plug.Conn.halt()
   end
 
-  # Unauthorized handler
-  defp resolve_authorization(conn, nil, handler) do
-    conn
-    |> handler.call(:unauthorized)
-    |> Plug.Conn.halt()
+  defp resolve_authorization(conn, true, _), do: conn
+
+  defp normalize_value(value) when is_atom(value) do
+    value
+    |> Atom.to_string()
+    |> normalize_value()
   end
 
-  defp resolve_authorization(conn, true, _), do: conn
+  defp normalize_value(value) when is_binary(value) do
+    value
+    |> String.downcase()
+  end
+
+  defp has_all_values(user_values, required_values) do
+    Enum.all?(required_values || [], &(&1 in (user_values || [])))
+  end
+
+  defp has_any_value(user_values, required_values) do
+    Enum.any?(required_values || [], &Enum.member?(user_values || [], &1))
+  end
 end
