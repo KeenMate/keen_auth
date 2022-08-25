@@ -4,7 +4,7 @@ defmodule KeenAuth.Mapper.AzureAD do
   @impl true
   def map(:aad, user) do
     %KeenAuth.User{
-      id: user["sub"],
+      user_id: user["sub"],
       username: user["preferred_username"],
       display_name: user["name"],
       email: user["preferred_username"],

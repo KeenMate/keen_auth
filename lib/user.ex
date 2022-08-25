@@ -1,13 +1,13 @@
 defmodule KeenAuth.User do
   alias Ecto.Changeset
 
-  @keys [:id, :username, :display_name, :email, :roles, :permissions]
+  @keys [:user_id, :username, :display_name, :email, :roles, :permissions]
 
   # @enforce_keys @keys
   defstruct @keys
 
   @type t() :: %__MODULE__{
-    id: binary(),
+    user_id: binary(),
     username: binary() | nil,
     display_name: binary(),
     email: binary(),
@@ -16,7 +16,7 @@ defmodule KeenAuth.User do
   }
 
   @changeset_fields %{
-    id: :string,
+    user_id: :string,
     username: :string,
     display_name: :string,
     email: :string,

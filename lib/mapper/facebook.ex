@@ -4,7 +4,7 @@ defmodule KeenAuth.Mapper.Facebook do
   @impl true
   def map(:facebook, user) do
     %KeenAuth.User{
-      id: user["sub"],
+      user_id: user["sub"],
       username: nil,
       display_name: user["name"],
       email: user["email"],
