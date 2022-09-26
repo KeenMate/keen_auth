@@ -188,17 +188,17 @@ Starting from a new project with ecto
         
         		<div class="sign-in-options">
         			<div class="option">
-        				<a href={Routes.auth_path(@conn, :new, :aad, redirect_to: "/")}>
+        				<a href={Routes.authentication_path(@conn, :new, :aad, redirect_to: "/")}>
         					Azure
         				</a>
         			</div>
         			<div class="option">
-        				<a href={Routes.auth_path(@conn, :new, :github, redirect_to: "/")}>
+        				<a href={Routes.authentication_path(@conn, :new, :github, redirect_to: "/")}>
         					Github
         				</a>
         			</div>
         			<div class="option">
-        				<a href={Routes.auth_path(@conn, :new, :facebook, redirect_to: "/")}>
+        				<a href={Routes.authentication_path(@conn, :new, :facebook, redirect_to: "/")}>
         					Facebook
         				</a>
         			</div>
