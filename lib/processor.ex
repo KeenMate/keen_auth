@@ -2,7 +2,7 @@ defmodule KeenAuth.Processor do
   alias KeenAuth.AuthenticationController
   alias KeenAuth.Strategy
 
-  @default_processor KeenAuth.Processors.Default
+  @default_processor KeenAuth.Processor.Default
 
   @callback process(
               conn :: Plug.Conn.t(),
