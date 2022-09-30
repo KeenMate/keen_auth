@@ -64,6 +64,7 @@ Starting from a new project with ecto
           ]
         ]
     ```
+    then add ``` plug KeenAuth.Plug ``` to endpoint above router
     
 3. Replace cookie session storage with ETS
     1. Make sure to create session ETS table when the application starts
