@@ -33,11 +33,11 @@ defmodule KeenAuth.EmailAuthenticationController do
       conn
       |> redirect_back(params)
     else
-      {:error, :unauthenticated} ->
+      err ->
         Process.sleep(Enum.random(100..300//10))
         # Sleep for random amount to prevent timing attacks
 
-        EmailAuthenticationHandler.handle_unauthenticated(conn, params)
+        EmailAuthenticationHandler.handle_unauthenticated(conn, params, err)
     end
   end
 

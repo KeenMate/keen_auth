@@ -3,15 +3,16 @@ defmodule KeenAuth.EmailAuthenticationHandler do
   alias KeenAuth.Config
 
   @callback authenticate(conn :: Plug.Conn.t(), params :: map()) :: {:ok, map()} | {:error, :unauthenticated}
-  @callback handle_unauthenticated(conn :: Plug.Conn.t(), params :: map()) :: Plug.Conn.t()
+  @callback handle_unauthenticated(conn :: Plug.Conn.t(), params :: map(), err :: {atom(), any()}) ::
+              Plug.Conn.t()
   @callback handle_authenticated(conn :: Plug.Conn.t(), user :: KeenAuth.User.t()) :: Plug.Conn.t()
 
   def authenticate(conn, params) do
     current_authentication_handler!(conn).authenticate(conn, params)
   end
 
-  def handle_unauthenticated(conn, params) do
-    current_authentication_handler!(conn).handle_unauthenticated(conn, params)
+  def handle_unauthenticated(conn, params, err) do
+    current_authentication_handler!(conn).handle_unauthenticated(conn, params, err)
   end
 
   def handle_authenticated(conn, user) do
