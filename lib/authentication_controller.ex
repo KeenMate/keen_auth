@@ -106,7 +106,7 @@ defmodule KeenAuth.AuthenticationController do
 
     conn
     |> delete_session(:redirect_to)
-    |> redirect(to: redirect_to)
+    |> redirect(external: redirect_to)
   end
 
   @spec maybe_put_redirect_to(Plug.Conn.t(), map()) :: Plug.Conn.t()
