@@ -63,6 +63,6 @@ defmodule KeenAuth.EmailAuthenticationController do
 
     conn
     |> delete_session(:redirect_to)
-    |> redirect(to: redirect_to)
+    |> redirect(external: redirect_to)
   end
 end
