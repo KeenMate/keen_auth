@@ -93,20 +93,7 @@ defmodule KeenAuth.Storage.Session do
   end
 
   def put_access_token(conn, provider, token) do
-    token_mod =
-      conn
-      |> KeenAuth.Plug.fetch_config()
-      |> Token.get_token(provider)
-
-    with {:ok, claims} <- token_mod.verify(token) do
-      conn
-      |> put_session(:access_claims, claims)
-      |> put_session(:access_token, token)
-    else
-      {:error, :empty_signer} ->
-        conn
-        |> put_session(:access_token, token)
-    end
+    put_session(conn, :access_token, token)
   end
 
   def put_id_token(conn, provider \\ nil, token \\ nil)
