@@ -70,7 +70,7 @@ defmodule KeenAuth.AuthenticationController do
     processor = Processor.current_processor(conn, provider)
 
     with user when not is_nil(user) <- storage.current_user(conn) do
-      processor.signout(conn, params)
+      processor.sign_out(conn, params)
     else
       nil ->
         RequestHelpers.redirect_back(conn, params)
