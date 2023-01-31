@@ -12,8 +12,25 @@ defmodule KeenAuth.Processor do
             ) ::
               {:ok, Plug.Conn.t(), KeenAuth.User.t() | map(), AuthenticationController.oauth_callback_result() | nil} | Plug.Conn.t()
 
+  @callback sign_out(conn :: Plug.Conn.t(), provider :: binary(), params :: map()) :: Plug.Conn.t()
+
+  defmacro __using__(_params \\ nil) do
+    quote do
+      @behaviour unquote(__MODULE__)
+
+      def process(conn, provider, mapped_user, oauth_response), do: unquote(__MODULE__).process(conn, provider, mapped_user, oauth_response)
+      def sign_out(conn, provider, params), do: unquote(__MODULE__).sign_out(conn, provider, params)
+
+      defoverridable unquote(__MODULE__)
+    end
+  end
+
   def process(conn, provider, mapped_user, oauth_response) do
     current_processor(conn, provider).process(conn, provider, mapped_user, oauth_response)
+  end
+
+  def sign_out(conn, provider, params) do
+    current_processor(conn, provider).signout(conn, provider, params)
   end
 
   def current_processor(conn, provider) do

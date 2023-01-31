@@ -1,8 +1,4 @@
 defmodule KeenAuth.AuthenticationController do
-  @callback new(conn :: Plug.Conn.t(), any()) :: Plug.Conn.t()
-  @callback callback(conn :: Plug.Conn.t(), any()) :: Plug.Conn.t()
-  @callback delete(conn :: Plug.Conn.t(), any()) :: Plug.Conn.t()
-
   use Phoenix.Controller
 
   alias KeenAuth.Helpers.Binary
@@ -10,9 +6,14 @@ defmodule KeenAuth.AuthenticationController do
   alias KeenAuth.Processor
   alias KeenAuth.Storage
   alias KeenAuth.Strategy
+  alias KeenAuth.Helpers.RequestHelpers
   alias Plug.Conn
 
   require Logger
+
+  @callback new(conn :: Plug.Conn.t(), any()) :: Plug.Conn.t()
+  @callback callback(conn :: Plug.Conn.t(), any()) :: Plug.Conn.t()
+  @callback delete(conn :: Plug.Conn.t(), any()) :: Plug.Conn.t()
 
   @type tokens_map() :: %{
           optional(:access_token) => binary(),
@@ -59,20 +60,19 @@ defmodule KeenAuth.AuthenticationController do
          mapped_user = map_user(conn, provider, raw_user),
          {:ok, conn, user, oauth_result} <- process(conn, provider, mapped_user, oauth_result),
          {:ok, conn} <- store(conn, provider, user, oauth_result) do
-      redirect_back(conn, params)
+      RequestHelpers.redirect_back(conn, params)
     end
   end
 
-  def delete(conn, params) do
+  def delete(conn, %{"provider" => provider} = params) do
     storage = Storage.current_storage(conn)
+    processor = Processor.current_processor(conn, provider)
 
     with user when not is_nil(user) <- storage.current_user(conn) do
-      conn
-      |> storage.delete()
-      |> redirect_back(params)
+      processor.signout(conn, params)
     else
       nil ->
-        redirect_back(conn, params)
+        RequestHelpers.redirect_back(conn, params)
     end
   end
 
@@ -95,18 +95,6 @@ defmodule KeenAuth.AuthenticationController do
     mod = Storage.current_storage(conn)
 
     mod.store(conn, provider, mapped_user, oauth_response)
-  end
-
-  @spec redirect_back(Plug.Conn.t(), map()) :: Plug.Conn.t()
-  def redirect_back(conn, params \\ %{}) do
-    redirect_to =
-      get_session(conn, :redirect_to) ||
-        params["redirect_to"] ||
-        "/"
-
-    conn
-    |> delete_session(:redirect_to)
-    |> redirect(external: redirect_to)
   end
 
   @spec maybe_put_redirect_to(Plug.Conn.t(), map()) :: Plug.Conn.t()

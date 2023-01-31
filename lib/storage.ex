@@ -20,6 +20,27 @@ defmodule KeenAuth.Storage do
   @callback put_tokens(conn :: Plug.Conn.t(), provider :: atom(), AuthenticationController.tokens_map()) :: Plug.Conn.t()
   @callback put_current_user(conn :: Plug.Conn.t(), provider :: atom(), KeenAuth.User.t() | map()) :: Plug.Conn.t()
 
+  defmacro __using__(_params \\ nil) do
+    quote do
+      @behaviour unquote(__MODULE__)
+
+      def process(conn, provider, mapped_user, oauth_response), do: unquote(__MODULE__).process(conn, provider, mapped_user, oauth_response)
+      def store(conn, provider, mapped_user, oauth_response), do: unquote(__MODULE__).store(conn, provider, mapped_user, oauth_response)
+      def current_user(conn), do: unquote(__MODULE__).current_user(conn)
+      def authenticated?(conn), do: unquote(__MODULE__).authenticated?(conn)
+      def authenticated?(conn), do: unquote(__MODULE__).authenticated?(conn)
+      def get_access_token(conn), do: unquote(__MODULE__).get_access_token(conn)
+      def get_id_token(conn), do: unquote(__MODULE__).get_id_token(conn)
+      def get_refresh_token(conn), do: unquote(__MODULE__).get_refresh_token(conn)
+      def delete(conn), do: unquote(__MODULE__).delete(conn)
+      def put_provider(conn, provider), do: unquote(__MODULE__).put_provider(conn, provider)
+      def put_tokens(conn, provider, tokens), do: unquote(__MODULE__).put_tokens(conn, provider, tokens)
+      def put_current_user(conn, provider, user), do: unquote(__MODULE__).put_current_user(conn, provider, user)
+
+      defoverridable unquote(__MODULE__)
+    end
+  end
+
   def store(conn, provider, mapped_user, oauth_response) do
     current_storage(conn).store(conn, provider, mapped_user, oauth_response)
   end

@@ -1,5 +1,5 @@
 defmodule KeenAuth.Mapper.Facebook do
-  @behaviour KeenAuth.Mapper
+  use KeenAuth.Mapper
 
   @impl true
   def map(:facebook, user) do

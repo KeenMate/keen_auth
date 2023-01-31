@@ -1,5 +1,5 @@
 defmodule KeenAuth.Mapper.AzureAD do
-  @behaviour KeenAuth.Mapper
+  use KeenAuth.Mapper
 
   @impl true
   def map(:aad, user) do
