@@ -66,6 +66,7 @@ defmodule KeenAuth.AuthenticationController do
 
   def delete(conn, %{"provider" => provider} = params) do
     storage = Storage.current_storage(conn)
+    provider = Binary.to_atom(provider)
     processor = Processor.current_processor(conn, provider)
 
     with user when not is_nil(user) <- storage.current_user(conn) do
