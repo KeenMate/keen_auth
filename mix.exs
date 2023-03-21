@@ -25,7 +25,7 @@ defmodule KeenAuth.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:phoenix, "~> 1.6.7"},
+      {:phoenix, ">= 1.6.7"},
       {:assent, "~> 0.2.0"},
       {:certifi, "~> 2.4"},
       {:ssl_verify_fun, "~> 1.1"},
