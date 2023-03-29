@@ -55,6 +55,8 @@ defmodule KeenAuth do
         post("/callback", unquote(auth_controller), :callback)
         get("/delete", unquote(auth_controller), :delete)
       end
+
+      get("/delete", unquote(auth_controller), :delete)
     end
   end
 

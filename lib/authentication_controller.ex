@@ -77,6 +77,19 @@ defmodule KeenAuth.AuthenticationController do
     end
   end
 
+  def delete(conn,params) do
+    storage = Storage.current_storage(conn)
+    provider = storage.get_provider(conn)
+    processor = Processor.current_processor(conn, provider)
+
+    with user when not is_nil(user) <- storage.current_user(conn) do
+      processor.sign_out(conn, provider, params)
+    else
+      nil ->
+        RequestHelpers.redirect_back(conn, params)
+    end
+  end
+
   @spec map_user(Conn.t(), atom(), map()) :: KeenAuth.User.t()
   def map_user(conn, provider, user) do
     mod = Mapper.current_mapper(conn, provider)

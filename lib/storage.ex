@@ -15,6 +15,7 @@ defmodule KeenAuth.Storage do
   @callback get_access_token(conn :: Plug.Conn.t()) :: binary() | nil
   @callback get_id_token(conn :: Plug.Conn.t()) :: binary() | nil
   @callback get_refresh_token(conn :: Plug.Conn.t()) :: binary() | nil
+  @callback get_provider(conn :: Plug.Conn.t()) :: binary() | nil
   @callback delete(conn :: Plug.Conn.t()) :: Plug.Conn.t()
   @callback put_provider(conn :: Plug.Conn.t(), provider :: atom()) :: Plug.Conn.t()
   @callback put_tokens(conn :: Plug.Conn.t(), provider :: atom(), AuthenticationController.tokens_map()) :: Plug.Conn.t()
@@ -32,6 +33,7 @@ defmodule KeenAuth.Storage do
       def get_access_token(conn), do: unquote(__MODULE__).get_access_token(conn)
       def get_id_token(conn), do: unquote(__MODULE__).get_id_token(conn)
       def get_refresh_token(conn), do: unquote(__MODULE__).get_refresh_token(conn)
+      def get_provider(conn), do: unquote(__MODULE__).get_provider(conn)
       def delete(conn), do: unquote(__MODULE__).delete(conn)
       def put_provider(conn, provider), do: unquote(__MODULE__).put_provider(conn, provider)
       def put_tokens(conn, provider, tokens), do: unquote(__MODULE__).put_tokens(conn, provider, tokens)
@@ -63,6 +65,10 @@ defmodule KeenAuth.Storage do
 
   def get_refresh_token(conn) do
     current_storage(conn).get_refresh_token(conn)
+  end
+
+  def get_provider(conn) do
+    current_storage(conn).get_provider(conn)
   end
 
   def delete(conn) do
