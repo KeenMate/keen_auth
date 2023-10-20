@@ -159,7 +159,7 @@ Starting from a new project with ecto
         	alias KeenAuth.Config
         	
         	def sign_in(conn, _params) do
-        	  if Config.get_storage().current_user(conn) do
+        	  if KeenAuth.authenticated?(conn) do
         	    redirect(conn, to: "/")
         	  else
         	    render(conn, "sign_in.html")
