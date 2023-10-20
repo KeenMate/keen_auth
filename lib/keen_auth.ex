@@ -28,6 +28,10 @@ defmodule KeenAuth do
   ```
   """
 
+  alias Plug.Conn
+
+  @type user() :: KeenAuth.User.t() | map() | term()
+
   defmacro authentication_routes() do
     # TODO since `auth_controller` cannot be retrieved based on OTP app configuration, route to concrete controller in `AuthenticationController` and move default implementation elsewhere
     auth_controller = Application.get_env(:keen_auth, :auth_controller, KeenAuth.AuthenticationController)
@@ -60,8 +64,18 @@ defmodule KeenAuth do
     end
   end
 
-  @spec current_user(Plug.Conn.t()) :: KeenAuth.User.t() | map() | term()
+  @spec current_user(Conn.t()) :: user()
   def current_user(conn) do
     conn.assigns[:current_user]
+  end
+
+  @spec authenticated?(Conn.t()) :: boolean()
+  def authenticated?(conn) do
+    current_user(conn) != nil
+  end
+
+  @spec assign_current_user(Conn.t(), user()) :: Plug.Conn.t()
+  def assign_current_user(conn, user) do
+    Conn.assign(:current_user, user)
   end
 end

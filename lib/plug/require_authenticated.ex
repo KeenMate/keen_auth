@@ -13,9 +13,7 @@ defmodule KeenAuth.Plug.RequireAuthenticated do
   end
 
   def call(conn, opts) do
-    storage = opts[:storage] || Storage.current_storage(conn)
-
-    if storage.authenticated?(conn) do
+    if KeenAuth.authenticated?(conn) do
       conn
     else
       handle_unauthenticated(conn, opts)
