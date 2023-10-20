@@ -21,7 +21,12 @@ defmodule KeenAuth.Plug.RequireAuthenticated do
   end
 
   def handle_unauthenticated(%Conn{request_path: request_path} = conn, opts) do
-    application_redirect = opts[:redirect] || config_redirect(conn)
+    application_redirect =
+      if Keyword.has_key?(opts, :redirect) do
+        opts[:redirect]
+      else
+        config_redirect(conn)
+      end
 
     cond do
       is_function(application_redirect) ->
