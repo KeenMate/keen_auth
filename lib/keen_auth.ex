@@ -76,6 +76,6 @@ defmodule KeenAuth do
 
   @spec assign_current_user(Conn.t(), user()) :: Plug.Conn.t()
   def assign_current_user(conn, user) do
-    Conn.assign(:current_user, user)
+    Conn.assign(conn, :current_user, user)
   end
 end
