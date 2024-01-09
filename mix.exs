@@ -4,7 +4,7 @@ defmodule KeenAuth.MixProject do
   def project do
     [
       app: :keen_auth,
-      version: "0.2.1",
+      version: "0.2.2",
       elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
       description: description(),
@@ -25,6 +25,7 @@ defmodule KeenAuth.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:phoenix, ">= 1.6.7"},
       {:assent, "~> 0.2.0"},
       {:certifi, "~> 2.4"},
@@ -42,6 +43,7 @@ defmodule KeenAuth.MixProject do
     [
       # This option is only needed when you don't want to use the OTP application name
       name: "keen_auth",
+      # organization: "keenmate",
       # These are the default files included in the package
       files: ~w(lib .formatter.exs mix.exs README.md LICENSE),
       licenses: ["MIT"],
