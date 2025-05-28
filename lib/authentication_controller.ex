@@ -28,10 +28,6 @@ defmodule KeenAuth.AuthenticationController do
           token: tokens_map()
         }
 
-  if fallback = Application.compile_env(:keen_auth, :auth_action_fallback) do
-    action_fallback fallback
-  end
-
   defmacro __using__(_opts \\ []) do
     quote do
       use Phoenix.Controller
