@@ -1,4 +1,59 @@
 defmodule KeenAuth.Storage do
+  @moduledoc """
+  Defines the storage behavior for persisting authentication data.
+
+  Storage is the final stage in KeenAuth's pipeline architecture. It handles
+  persisting user data, tokens, and session information. Storage implementations
+  can be as simple as session-based or as sophisticated as multi-layer persistence.
+
+  ## Pipeline Stage
+
+  The storage is the final stage in the authentication flow:
+
+  ```
+  Strategy → Mapper → Processor → **Storage**
+  ```
+
+  ## Flexibility
+
+  Storage implementations can vary based on your needs:
+
+  - **Session Storage** (default): Simple session-based storage
+  - **Database Storage**: Persistent user sessions in database
+  - **JWT Storage**: Stateless authentication with JWT tokens
+  - **Multi-layer**: Combine database + session + JWT for different purposes
+
+  ## Example Implementation
+
+      defmodule MyApp.Auth.DatabaseStorage do
+        @behaviour KeenAuth.Storage
+
+        def store(conn, provider, user, oauth_response) do
+          {:ok, session} = create_user_session(user, provider)
+          conn = put_session(conn, :session_id, session.id)
+          {:ok, conn}
+        end
+
+        def current_user(conn) do
+          with session_id when not is_nil(session_id) <- get_session(conn, :session_id),
+               session when not is_nil(session) <- get_session_from_db(session_id) do
+            session.user
+          else
+            _ -> nil
+          end
+        end
+
+        # ... implement other callbacks
+      end
+
+  ## Configuration
+
+  Configure a custom storage implementation:
+
+      config :keen_auth,
+        storage: MyApp.Auth.CustomStorage
+  """
+
   alias KeenAuth.AuthenticationController
   alias KeenAuth.Config
 
