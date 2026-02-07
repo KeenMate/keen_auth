@@ -96,6 +96,9 @@ end
 
 Add to your `config.exs`:
 
+> [!IMPORTANT]
+> **OAuth Scopes**: KeenAuth automatically requests `openid profile email offline_access` scopes if you don't specify any. This ensures user profile data is returned by the provider. If you specify custom scopes via `authorization_params: [scope: "..."]`, make sure to include at least `openid profile email` or you may receive empty user data.
+
 ```elixir
 config :keen_auth,
   strategies: [
@@ -359,6 +362,34 @@ end
 ```
 
 ## Configuration Reference
+
+### OAuth Scopes
+
+> [!WARNING]
+> If you override `authorization_params` with custom scopes, you **must** include the essential OIDC scopes or you will receive empty user data from the provider.
+
+KeenAuth automatically includes these default scopes when none are specified:
+
+```
+openid profile email offline_access
+```
+
+**What each scope provides:**
+- `openid` - Required for OIDC, returns `sub` (user ID)
+- `profile` - Returns `name`, `preferred_username`, etc.
+- `email` - Returns user's email address
+- `offline_access` - Returns refresh token for token renewal
+
+**Custom scopes example:**
+```elixir
+# If you need additional scopes (e.g., Microsoft Graph API access),
+# always include the base OIDC scopes:
+config: [
+  authorization_params: [
+    scope: "openid profile email offline_access User.Read Directory.Read.All"
+  ]
+]
+```
 
 ### Complete Configuration Example
 

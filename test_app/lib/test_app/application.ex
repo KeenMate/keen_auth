@@ -5,6 +5,9 @@ defmodule TestApp.Application do
 
   @impl true
   def start(_type, _args) do
+    # Create ETS table for sessions (allows storing tokens without cookie overflow)
+    :ets.new(:test_app_sessions, [:named_table, :public, read_concurrency: true])
+
     children = [
       TestAppWeb.Endpoint
     ]

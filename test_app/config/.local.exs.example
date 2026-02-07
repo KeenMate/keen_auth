@@ -10,7 +10,7 @@ client_secret = "your-client-secret"
 
 config :test_app, :keen_auth,
   strategies: [
-    azure_ad: [
+    entra: [
       strategy: Assent.Strategy.AzureAD,
       mapper: KeenAuth.Mapper.AzureAD,
       processor: TestApp.Auth.Processor,
@@ -18,7 +18,7 @@ config :test_app, :keen_auth,
         tenant_id: tenant_id,
         client_id: client_id,
         client_secret: client_secret,
-        redirect_uri: "http://localhost:4000/auth/azure_ad/callback"
+        redirect_uri: "http://localhost:4000/auth/entra/callback"
       ]
     ],
 

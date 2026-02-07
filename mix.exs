@@ -28,7 +28,9 @@ defmodule KeenAuth.MixProject do
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:phoenix, ">= 1.6.7"},
       {:assent, "~> 0.3.0"},
-      {:joken, "~> 2.6"}
+      {:joken, "~> 2.6"},
+      # HTTP client for Assent OAuth requests (handles SSL properly)
+      {:req, "~> 0.5"}
     ]
   end
 

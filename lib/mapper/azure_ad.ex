@@ -3,13 +3,13 @@ defmodule KeenAuth.Mapper.AzureAD do
   Mapper for Azure AD / Microsoft Entra ID users.
 
   Maps the user claims from Azure AD to a `KeenAuth.User` struct.
-  Supports both `:aad` and `:azure_ad` provider atoms.
+  Supports `:aad`, `:azure_ad`, and `:entra` provider atoms.
   """
 
   use KeenAuth.Mapper
 
   @impl true
-  def map(provider, user) when provider in [:aad, :azure_ad] do
+  def map(provider, user) when provider in [:aad, :azure_ad, :entra] do
     %KeenAuth.User{
       user_id: user["sub"],
       username: user["preferred_username"],

@@ -37,11 +37,12 @@ defmodule KeenAuth.AuthenticationController do
   5. User is redirected to the original destination
   """
 
-  use Phoenix.Controller
+  use Phoenix.Controller, formats: [:html, :json]
 
   alias KeenAuth.Helpers.Binary
   alias KeenAuth.Helpers.InputValidator
   alias KeenAuth.Mapper
+  alias KeenAuth.Plug.AuthSession
   alias KeenAuth.Processor
   alias KeenAuth.Storage
   alias KeenAuth.Strategy
@@ -69,7 +70,7 @@ defmodule KeenAuth.AuthenticationController do
 
   defmacro __using__(_opts \\ []) do
     quote do
-      use Phoenix.Controller
+      use Phoenix.Controller, formats: [:html, :json]
 
       @behaviour unquote(__MODULE__)
 
@@ -91,7 +92,7 @@ defmodule KeenAuth.AuthenticationController do
     with {:ok, provider} <- InputValidator.validate_provider(provider),
          {:ok, %{session_params: session_params, url: url}} <- get_authorization_uri(conn, Binary.to_atom(provider)) do
       conn
-      |> put_session(:session_params, session_params)
+      |> AuthSession.put(:session_params, session_params)
       |> maybe_put_redirect_to(params)
       |> redirect(external: url)
     end
@@ -112,12 +113,14 @@ defmodule KeenAuth.AuthenticationController do
     with {:ok, provider} <- InputValidator.validate_provider(provider) do
       {_, params} = Map.split(params, ["provider"])
       provider = Binary.to_atom(provider)
-      {conn, session_params} = get_and_delete_session(conn, :session_params)
+      {conn, session_params} = AuthSession.get_and_delete(conn, :session_params)
 
       with {:ok, %{user: raw_user} = oauth_result} <- make_callback_back(conn, provider, params, session_params),
            mapped_user = map_user(conn, provider, raw_user),
            {:ok, conn, user, oauth_result} <- process(conn, provider, mapped_user, oauth_result),
            {:ok, conn} <- store(conn, provider, user, oauth_result) do
+        # Clear remaining auth session data and regenerate session ID
+        conn = AuthSession.clear_and_regenerate(conn)
         RequestHelpers.redirect_back(conn, params)
       end
     end
@@ -183,7 +186,7 @@ defmodule KeenAuth.AuthenticationController do
     redirect_to = Map.get(params, "redirect_to")
 
     if not is_nil(redirect_to) do
-      put_session(conn, :redirect_to, redirect_to)
+      AuthSession.put(conn, :redirect_to, redirect_to)
     else
       conn
     end
@@ -191,34 +194,44 @@ defmodule KeenAuth.AuthenticationController do
 
   # ==== OAuth flow
 
+  # Default OIDC scopes - essential for getting user profile information
+  # Without these, providers like Azure AD may return empty user data
+  @default_oidc_scopes "openid profile email offline_access"
+
   @spec get_authorization_uri(Conn.t(), atom()) :: {:ok, %{session_params: map(), url: binary()}}
   def get_authorization_uri(conn, provider) do
     strategy = Strategy.current_strategy!(conn, provider)
+    config = ensure_default_scopes(strategy[:config])
 
-    strategy[:strategy].authorize_url(strategy[:config])
+    strategy[:strategy].authorize_url(config)
   end
 
   @spec make_callback_back(Conn.t(), atom(), map(), map()) :: {:ok, oauth_callback_response()}
   def make_callback_back(conn, provider, params, session_params \\ %{}) do
     strategy = Strategy.current_strategy!(conn, provider)
-
-    auth_params = Keyword.get(strategy[:config], :authorization_params, [])
+    config = ensure_default_scopes(strategy[:config])
 
     config =
-      strategy[:config]
+      config
       |> Keyword.put(:session_params, session_params)
-      |> Keyword.put(
-        :authorization_params,
-        Keyword.update(auth_params, :scope, "offline_access", fn scope -> "offline_access " <> scope end)
-      )
 
     strategy[:strategy].callback(config, params)
   end
 
-  defp get_and_delete_session(conn, key) do
-    value = get_session(conn, key)
-    conn = delete_session(conn, key)
+  # Ensures default OIDC scopes are set if no scope is specified.
+  # This prevents empty user data from providers like Azure AD/Entra.
+  defp ensure_default_scopes(config) do
+    auth_params = Keyword.get(config, :authorization_params, [])
 
-    {conn, value}
+    case Keyword.get(auth_params, :scope) do
+      nil ->
+        # No scope specified - use defaults
+        updated_params = Keyword.put(auth_params, :scope, @default_oidc_scopes)
+        Keyword.put(config, :authorization_params, updated_params)
+
+      _scope ->
+        # User specified scope - don't override
+        config
+    end
   end
 end

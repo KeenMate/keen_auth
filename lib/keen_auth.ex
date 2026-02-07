@@ -1,13 +1,63 @@
 defmodule KeenAuth do
   @moduledoc """
-  KeenAuth provides a powerful pipeline-based OAuth authentication system for Phoenix applications.
+  KeenAuth provides a powerful pipeline-based authentication system for Phoenix applications.
 
-  The library implements a "super simple yet super powerful" approach where authentication flows
-  through four customizable stages: Strategy → Mapper → Processor → Storage.
+  The library implements a "super simple yet super powerful" approach with two entry points
+  (OAuth or Email) that converge into a shared pipeline: Mapper → Processor → Storage.
 
-  ## Pipeline Architecture
+  ## Architecture Overview
 
-  - **Strategy**: Handles OAuth provider protocols (Azure AD, GitHub, Facebook, etc.)
+  ```
+                      ┌─────────────────────────────────┐
+                      │         ENTRY POINTS            │
+                      └─────────────────────────────────┘
+                                      │
+              ┌───────────────────────┴───────────────────────┐
+              │                                               │
+              ▼                                               ▼
+    ┌───────────────────┐                         ┌───────────────────┐
+    │   OAuth (Assent)  │                         │   Email (Custom)  │
+    │                   │                         │                   │
+    │ External provider │                         │ Your app verifies │
+    │ verifies creds    │                         │ email/password    │
+    └─────────┬─────────┘                         └─────────┬─────────┘
+              │                                             │
+              │         {:ok, raw_user}                     │
+              └───────────────────┬─────────────────────────┘
+                                  │
+                                  ▼
+                      ┌─────────────────────────────────┐
+                      │       KEEN AUTH PIPELINE        │
+                      └─────────────────────────────────┘
+                                  │
+                                  ▼
+                      ┌─────────────────────────────────┐
+                      │  MAPPER                         │
+                      │  Normalize raw_user → User      │
+                      └─────────────────────────────────┘
+                                  │
+                                  ▼
+                      ┌─────────────────────────────────┐
+                      │  PROCESSOR                      │
+                      │  Business logic, DB, roles      │
+                      └─────────────────────────────────┘
+                                  │
+                                  ▼
+                      ┌─────────────────────────────────┐
+                      │  STORAGE                        │
+                      │  Persist session/tokens         │
+                      └─────────────────────────────────┘
+  ```
+
+  ## Entry Points
+
+  - **OAuth** (via Assent): External providers handle credential verification
+  - **Email**: Your app implements `KeenAuth.EmailAuthenticationHandler` to verify credentials
+
+  Both entry points produce a `raw_user` map that flows through the same pipeline.
+
+  ## Pipeline Stages
+
   - **Mapper**: Normalizes user data and can enrich with external API calls
   - **Processor**: Implements business logic, validation, and user transformations
   - **Storage**: Manages data persistence (sessions, database, JWT, custom)

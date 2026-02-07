@@ -104,16 +104,20 @@ end
 ## Documentation Status
 
 **Well-Documented Modules**:
-- ✅ `KeenAuth` (main module) - Complete @moduledoc and @doc for all public functions
+- ✅ `KeenAuth` (main module) - Complete @moduledoc with architecture diagram
 - ✅ `KeenAuth.Processor` - Complete @moduledoc, callback docs, and function docs
 - ✅ `KeenAuth.Storage` - Complete @moduledoc with implementation examples
 - ✅ `KeenAuth.Config` - All functions have @doc and @spec
 - ✅ `KeenAuth.Plug.FetchUser` - Has @moduledoc
 - ✅ `KeenAuth.AuthenticationController` - Complete @moduledoc and @doc for public functions
 - ✅ `KeenAuth.Plug` - Complete @moduledoc
+- ✅ `KeenAuth.EmailAuthenticationController` - Complete @moduledoc with flow diagram
+- ✅ `KeenAuth.EmailAuthenticationHandler` - Complete @moduledoc and @callback docs
+- ✅ `KeenAuth.User` - Complete @moduledoc with examples
 
 **Need Documentation**:
-- ❌ Mapper modules, strategy modules, and other helper components
+- ❌ Individual mapper modules (AzureAD, Github, Facebook - partially done)
+- ❌ Authorization plugs (Authorize.Roles, Authorize.Groups, etc.)
 
 ## Important Notes
 

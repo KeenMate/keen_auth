@@ -58,9 +58,25 @@ mix phx.server
 | `/dashboard` | Protected - requires auth |
 | `/profile` | Protected - shows user details |
 
+## Email Authentication (Works Out of Box)
+
+The test app includes email/password authentication that works immediately:
+
+| Email              | Password  | Role  |
+|--------------------|-----------|-------|
+| admin@test.com     | admin123  | admin |
+| user@test.com      | user123   | user  |
+
+1. Start the server: `mix phx.server`
+2. Visit http://localhost:4000/login
+3. Enter test credentials
+4. You're authenticated!
+
 ## Testing Checklist
 
-- [ ] OAuth flow completes successfully
+- [ ] Email login works with test accounts
+- [ ] Invalid credentials show error message
+- [ ] OAuth flow completes successfully (requires .local.exs config)
 - [ ] User data is mapped correctly
 - [ ] Session stores user and tokens
 - [ ] Protected routes require authentication

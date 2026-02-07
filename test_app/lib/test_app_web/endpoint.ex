@@ -1,11 +1,18 @@
 defmodule TestAppWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :test_app
 
+  # ETS-based session configuration (server-side, no cookie size limit)
+  # This allows storing OAuth tokens without hitting the 4KB cookie limit.
+  #
+  # For production, consider using a persistent store like Redis or Database.
   @session_options [
-    store: :cookie,
-    key: "_test_app_key",
+    store: :ets,
+    key: "_test_app_session",
     signing_salt: "test_salt_change_in_prod",
-    same_site: "Lax"
+    table: :test_app_sessions,
+    same_site: "Lax",
+    http_only: true
+    # secure: true  # Enable in production with HTTPS
   ]
 
   plug Plug.Static,
