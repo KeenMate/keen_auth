@@ -56,13 +56,6 @@ defmodule KeenAuth.EmailAuthenticationController do
 
   @spec redirect_back(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def redirect_back(conn, params \\ %{}) do
-    redirect_to =
-      get_session(conn, :redirect_to) ||
-        params["redirect_to"] ||
-        "/"
-
-    conn
-    |> delete_session(:redirect_to)
-    |> redirect(external: redirect_to)
+    KeenAuth.Helpers.RequestHelpers.redirect_back(conn, params)
   end
 end

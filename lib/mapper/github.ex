@@ -9,7 +9,8 @@ defmodule KeenAuth.Mapper.Github do
       display_name: user["name"],
       email: user["email"],
       roles: [],
-      permissions: []
+      permissions: [],
+      groups: []
     }
   end
 end

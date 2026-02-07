@@ -4,8 +4,8 @@ defmodule KeenAuth.MixProject do
   def project do
     [
       app: :keen_auth,
-      version: "0.2.2",
-      elixir: "~> 1.10",
+      version: "0.3.0",
+      elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       description: description(),
       package: package(),
@@ -25,13 +25,10 @@ defmodule KeenAuth.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:phoenix, ">= 1.6.7"},
-      {:assent, "~> 0.2.0"},
-      {:certifi, "~> 2.4"},
-      {:ssl_verify_fun, "~> 1.1"},
-      {:joken, "~> 2.4.1"},
-      {:ecto, "~> 3.8"}
+      {:assent, "~> 0.3.0"},
+      {:joken, "~> 2.6"}
     ]
   end
 

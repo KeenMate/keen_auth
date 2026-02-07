@@ -1,4 +1,34 @@
 defmodule KeenAuth.Plug do
+  @moduledoc """
+  Main plug that stores KeenAuth configuration in the connection.
+
+  This plug must be included in your pipeline before any KeenAuth functionality
+  can be used. It stores the configuration in the connection's private data,
+  making it accessible to controllers and other plugs.
+
+  ## Usage
+
+  Add the plug to your router pipeline:
+
+      pipeline :authentication do
+        plug KeenAuth.Plug, otp_app: :my_app
+      end
+
+      scope "/auth" do
+        pipe_through [:browser, :authentication]
+        KeenAuth.authentication_routes()
+      end
+
+  ## Configuration
+
+  The plug accepts any configuration options that will be merged with your
+  application's `:keen_auth` configuration. Common options:
+
+  - `:otp_app` - The OTP application name where configuration is stored
+  - `:strategies` - List of authentication strategies (usually in app config)
+  - `:storage` - Custom storage module (defaults to session storage)
+  """
+
   @behaviour Plug
 
   alias Plug.Conn
@@ -32,5 +62,8 @@ defmodule KeenAuth.Plug do
 
   @spec no_config_error!() :: no_return()
   defp no_config_error!,
-    do: Config.raise_error("KeenAuth configuration not found in connection. Please use a KeenAuth plug that puts the KeenAuth configuration in the plug connection.")
+    do:
+      Config.raise_error(
+        "KeenAuth configuration not found in connection. Please use a KeenAuth plug that puts the KeenAuth configuration in the plug connection."
+      )
 end

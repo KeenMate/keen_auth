@@ -23,3 +23,7 @@ erl_crash.dump
 keen_auth-*.tar
 
 .idea
+
+# Local config with secrets (never commit)
+*.local.exs
+.local.exs

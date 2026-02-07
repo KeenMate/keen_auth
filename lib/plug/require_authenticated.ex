@@ -2,7 +2,6 @@ defmodule KeenAuth.Plug.RequireAuthenticated do
   @behaviour Plug
 
   alias Plug.Conn
-  alias KeenAuth.Storage
   alias KeenAuth.Config
 
   import Conn

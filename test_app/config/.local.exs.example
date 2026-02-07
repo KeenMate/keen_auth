@@ -1,0 +1,35 @@
+import Config
+
+# Copy this file to .local.exs and fill in your credentials
+# .local.exs is gitignored so your secrets won't be committed
+
+# Azure AD / Entra ID
+tenant_id = "your-tenant-id"
+client_id = "your-client-id"
+client_secret = "your-client-secret"
+
+config :test_app, :keen_auth,
+  strategies: [
+    azure_ad: [
+      strategy: Assent.Strategy.AzureAD,
+      mapper: KeenAuth.Mapper.AzureAD,
+      processor: TestApp.Auth.Processor,
+      config: [
+        tenant_id: tenant_id,
+        client_id: client_id,
+        client_secret: client_secret,
+        redirect_uri: "http://localhost:4000/auth/azure_ad/callback"
+      ]
+    ],
+
+    github: [
+      strategy: Assent.Strategy.Github,
+      mapper: KeenAuth.Mapper.Github,
+      processor: TestApp.Auth.Processor,
+      config: [
+        client_id: "your-github-client-id",
+        client_secret: "your-github-client-secret",
+        redirect_uri: "http://localhost:4000/auth/github/callback"
+      ]
+    ]
+  ]

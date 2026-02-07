@@ -59,8 +59,6 @@ The library expects configuration in the consuming application:
 
 ```elixir
 config :keen_auth,
-  # Optional: Custom action fallback for authentication controller (new-vision feature)
-  auth_action_fallback: MyApp.AuthFallbackController,
   strategies: [
     provider_name: [
       strategy: Assent.Strategy.ProviderName,
@@ -103,14 +101,28 @@ end
 - Multiple storage options (Session, Database, JWT)
 - Route protection and authorization examples
 
+## Documentation Status
+
+**Well-Documented Modules**:
+- ✅ `KeenAuth` (main module) - Complete @moduledoc and @doc for all public functions
+- ✅ `KeenAuth.Processor` - Complete @moduledoc, callback docs, and function docs
+- ✅ `KeenAuth.Storage` - Complete @moduledoc with implementation examples
+- ✅ `KeenAuth.Config` - All functions have @doc and @spec
+- ✅ `KeenAuth.Plug.FetchUser` - Has @moduledoc
+- ✅ `KeenAuth.AuthenticationController` - Complete @moduledoc and @doc for public functions
+- ✅ `KeenAuth.Plug` - Complete @moduledoc
+
+**Need Documentation**:
+- ❌ Mapper modules, strategy modules, and other helper components
+
 ## Important Notes
 
 - The library uses session storage by default but can be configured for ETS or custom storage
 - Code formatting follows 140-character line length (see `.formatter.exs`)
-- Tests have compilation issues with `ssl_verify_fun` dependency but core functionality works
-- Some files need formatting fixes (run `mix format` before committing)
+- Tests have compilation issues with `ssl_verify_fun` dependency (missing `public_key.hrl`) but core functionality works
 - The pipeline approach allows starting simple and scaling complexity as needed
 - Each pipeline stage is independent and can be customized without affecting others
+- Core behavior modules (Processor, Storage) now have comprehensive documentation with examples
 
 ## Branch Information
 

@@ -1,0 +1,21 @@
+# Dependencies
+/deps/
+/_build/
+
+# Generated files
+*.beam
+*.ez
+
+# Environment and local config (secrets)
+.env
+*.env.local
+config/.local.exs
+config/*.local.exs
+
+# IDE
+.elixir_ls/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
