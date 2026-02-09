@@ -56,7 +56,26 @@ defmodule TestApp.Auth.Processor do
       |> Plug.Conn.put_session(:debug_raw_user, raw_user)
       |> Plug.Conn.put_session(:debug_id_token_claims, id_token_claims)
 
+    # Add roles based on provider (for testing authorization)
+    mapped_user = add_roles_for_provider(provider, mapped_user)
+
     {:ok, conn, mapped_user, oauth_result}
+  end
+
+  # For Entra/Azure AD: give all users admin role (for testing)
+  defp add_roles_for_provider(provider, mapped_user) when provider in [:entra, :azure_ad, :aad] do
+    Logger.info("[Processor] Adding admin role for Entra user")
+    %{mapped_user | roles: ["admin", "user"]}
+  end
+
+  # For other providers: default user role
+  defp add_roles_for_provider(_provider, mapped_user) do
+    current_roles = Map.get(mapped_user, :roles) || []
+    if current_roles == [] do
+      %{mapped_user | roles: ["user"]}
+    else
+      mapped_user
+    end
   end
 
   # Decode JWT without verification (for debugging only)

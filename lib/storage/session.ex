@@ -57,9 +57,13 @@ defmodule KeenAuth.Storage.Session do
 
   import Plug.Conn, only: [put_session: 3, get_session: 2, delete_session: 2]
 
+  require KeenAuth.Logger, as: Log
+
   @impl true
   def store(conn, provider, mapped_user, oauth_response) do
     store_tokens? = get_storage_option(conn, :store_tokens, false)
+
+    Log.debug(:storage, "Storing session", provider: provider, store_tokens: store_tokens?)
 
     conn =
       conn

@@ -240,4 +240,182 @@ defmodule KeenAuth do
   def assign_current_user(conn, user) do
     Conn.assign(conn, :current_user, user)
   end
+
+  @doc """
+  Returns a list of configured authentication providers with metadata.
+
+  Useful for dynamically rendering login pages with only the providers
+  that are actually configured.
+
+  ## Variants
+
+  - `list_providers(conn)` - Use when you have a connection that went through `KeenAuth.Plug`
+  - `list_providers(otp_app)` - Use when you don't have a connection (e.g., login page before auth pipeline)
+
+  ## Options
+
+  Each provider can include optional metadata in its configuration:
+  - `:enabled` - Set to `false` to hide provider from list (defaults to `true`)
+  - `:label` - Display name (defaults to provider name capitalized)
+  - `:icon` - Icon identifier or URL
+  - `:color` - Brand color for styling
+
+  ## Example Configuration
+
+      config :my_app, :keen_auth,
+        strategies: [
+          email: [
+            label: "Email",
+            icon: "mail",
+            authentication_handler: MyApp.Auth.EmailHandler,
+            ...
+          ],
+          entra: [
+            label: "Microsoft",
+            icon: "microsoft",
+            color: "#0078d4",
+            strategy: Assent.Strategy.AzureAD,
+            ...
+          ],
+          github: [
+            label: "GitHub",
+            icon: "github",
+            color: "#333",
+            strategy: Assent.Strategy.Github,
+            ...
+          ]
+        ]
+
+  ## Example Usage
+
+      # With connection (after going through KeenAuth.Plug pipeline)
+      providers = KeenAuth.list_providers(conn)
+
+      # Without connection (e.g., login page)
+      providers = KeenAuth.list_providers(:my_app)
+
+      # Returns:
+      [
+        %{name: :email, label: "Email", icon: "mail", path: "/auth/email/new", color: nil},
+        %{name: :entra, label: "Microsoft", icon: "microsoft", path: "/auth/entra/new", color: "#0078d4"},
+        %{name: :github, label: "GitHub", icon: "github", path: "/auth/github/new", color: "#333"}
+      ]
+
+      # In your template
+      <%= for provider <- @providers do %>
+        <a href={provider.path} style={"background: \#{provider.color}"}>
+          <i class={"icon-\#{provider.icon}"}></i>
+          <%= provider.label %>
+        </a>
+      <% end %>
+
+  """
+  @spec list_providers(Conn.t() | atom()) :: [map()]
+  def list_providers(%Conn{} = conn) do
+    config = KeenAuth.Plug.fetch_config(conn)
+    strategies = KeenAuth.Config.get(config, :strategies, [])
+    build_provider_list(strategies)
+  end
+
+  def list_providers(otp_app) when is_atom(otp_app) do
+    strategies = Application.get_env(otp_app, :keen_auth, []) |> Keyword.get(:strategies, [])
+    build_provider_list(strategies)
+  end
+
+  defp build_provider_list(strategies) do
+    strategies
+    |> Enum.filter(fn {_name, opts} -> Keyword.get(opts, :enabled, true) end)
+    |> Enum.map(fn {name, opts} ->
+      %{
+        name: name,
+        label: Keyword.get(opts, :label, default_label(name)),
+        icon: Keyword.get(opts, :icon),
+        color: Keyword.get(opts, :color),
+        path: provider_path(name)
+      }
+    end)
+  end
+
+  @doc """
+  Returns a list of configured provider names (atoms).
+
+  Simpler alternative to `list_providers/1` when you only need the names.
+
+  ## Example
+
+      KeenAuth.provider_names(conn)
+      #=> [:email, :entra, :github]
+
+  """
+  @spec provider_names(Conn.t()) :: [atom()]
+  def provider_names(conn) do
+    config = KeenAuth.Plug.fetch_config(conn)
+    strategies = KeenAuth.Config.get(config, :strategies, [])
+    Keyword.keys(strategies)
+  end
+
+  @doc """
+  Renders provider buttons using a custom callback function.
+
+  This function takes a list of providers (from `list_providers/1`) and a render
+  callback that returns HTML for each provider. This allows the same provider list
+  to be rendered differently in different contexts.
+
+  ## Parameters
+
+  - `providers` - List of provider maps from `list_providers/1`
+  - `render_fn` - Function that takes a provider map and returns an HTML string
+
+  ## Provider Map Fields
+
+  The callback receives a map with these fields:
+  - `:name` - Provider atom (e.g., `:github`, `:entra`)
+  - `:label` - Display name (e.g., "GitHub", "Microsoft Entra")
+  - `:icon` - Icon identifier (if configured)
+  - `:color` - Brand color (if configured)
+  - `:path` - Authentication path (e.g., "/auth/github/new")
+
+  ## Examples
+
+      providers = KeenAuth.list_providers(:my_app)
+
+      # Small inline buttons for navbar
+      KeenAuth.render_providers(providers, fn p ->
+        ~s(<a href="\#{p.path}" class="btn btn-sm">\#{p.label}</a>)
+      end)
+
+      # Large buttons with icons for login page
+      KeenAuth.render_providers(providers, fn p ->
+        ~s'''
+        <a href="\#{p.path}" class="login-btn" style="background: \#{p.color || "#333"}">
+          <i class="icon-\#{p.icon}"></i>
+          <span>\#{p.label}</span>
+        </a>
+        '''
+      end)
+
+      # Filter OAuth providers only (exclude email)
+      providers
+      |> Enum.reject(& &1.name == :email)
+      |> KeenAuth.render_providers(fn p ->
+        ~s(<button onclick="location.href='\#{p.path}'">\#{p.label}</button>)
+      end)
+
+  """
+  @spec render_providers([map()], (map() -> String.t())) :: String.t()
+  def render_providers(providers, render_fn) when is_list(providers) and is_function(render_fn, 1) do
+    Enum.map_join(providers, "", render_fn)
+  end
+
+  defp default_label(name) do
+    name
+    |> Atom.to_string()
+    |> String.replace("_", " ")
+    |> String.split()
+    |> Enum.map(&String.capitalize/1)
+    |> Enum.join(" ")
+  end
+
+  defp provider_path(:email), do: "/auth/email/new"
+  defp provider_path(name), do: "/auth/#{name}/new"
 end

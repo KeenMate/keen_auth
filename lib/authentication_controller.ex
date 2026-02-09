@@ -49,7 +49,7 @@ defmodule KeenAuth.AuthenticationController do
   alias KeenAuth.Helpers.RequestHelpers
   alias Plug.Conn
 
-  require Logger
+  require KeenAuth.Logger, as: Log
 
   @callback new(conn :: Plug.Conn.t(), any()) :: Plug.Conn.t()
   @callback callback(conn :: Plug.Conn.t(), any()) :: Plug.Conn.t()
@@ -89,8 +89,12 @@ defmodule KeenAuth.AuthenticationController do
   to the OAuth provider for authentication.
   """
   def new(conn, %{"provider" => provider} = params) do
+    Log.debug(:auth, "Starting OAuth flow", provider: provider)
+
     with {:ok, provider} <- InputValidator.validate_provider(provider),
          {:ok, %{session_params: session_params, url: url}} <- get_authorization_uri(conn, Binary.to_atom(provider)) do
+      Log.debug(:auth, "Redirecting to provider", provider: provider)
+
       conn
       |> AuthSession.put(:session_params, session_params)
       |> maybe_put_redirect_to(params)
@@ -110,15 +114,21 @@ defmodule KeenAuth.AuthenticationController do
   On success, redirects the user to their original destination.
   """
   def callback(conn, %{"provider" => provider} = params) do
+    Log.debug(:auth, "Received OAuth callback", provider: provider)
+
     with {:ok, provider} <- InputValidator.validate_provider(provider) do
       {_, params} = Map.split(params, ["provider"])
       provider = Binary.to_atom(provider)
       {conn, session_params} = AuthSession.get_and_delete(conn, :session_params)
 
       with {:ok, %{user: raw_user} = oauth_result} <- make_callback_back(conn, provider, params, session_params),
+           _ = Log.debug(:mapper, "Mapping user data", provider: provider),
            mapped_user = map_user(conn, provider, raw_user),
+           _ = Log.debug(:processor, "Processing user", provider: provider, email: Map.get(mapped_user, :email)),
            {:ok, conn, user, oauth_result} <- process(conn, provider, mapped_user, oauth_result),
+           _ = Log.debug(:storage, "Storing authentication", provider: provider),
            {:ok, conn} <- store(conn, provider, user, oauth_result) do
+        Log.debug(:auth, "Authentication successful", provider: provider)
         # Clear remaining auth session data and regenerate session ID
         conn = AuthSession.clear_and_regenerate(conn)
         RequestHelpers.redirect_back(conn, params)
@@ -133,15 +143,19 @@ defmodule KeenAuth.AuthenticationController do
   retrieves the provider from storage. Redirects back if no user is signed in.
   """
   def delete(conn, %{"provider" => provider} = params) do
+    Log.debug(:auth, "Sign out requested", provider: provider)
+
     with {:ok, provider} <- InputValidator.validate_provider(provider) do
       storage = Storage.current_storage(conn)
       provider = Binary.to_atom(provider)
       processor = Processor.current_processor(conn, provider)
 
       with user when not is_nil(user) <- storage.current_user(conn) do
+        Log.debug(:auth, "Signing out user", provider: provider)
         processor.sign_out(conn, provider, params)
       else
         nil ->
+          Log.debug(:auth, "No user to sign out")
           RequestHelpers.redirect_back(conn, params)
       end
     end
@@ -152,10 +166,14 @@ defmodule KeenAuth.AuthenticationController do
     provider = storage.get_provider(conn)
     processor = Processor.current_processor(conn, provider)
 
+    Log.debug(:auth, "Sign out requested", provider: provider)
+
     with user when not is_nil(user) <- storage.current_user(conn) do
+      Log.debug(:auth, "Signing out user", provider: provider)
       processor.sign_out(conn, provider, params)
     else
       nil ->
+        Log.debug(:auth, "No user to sign out")
         RequestHelpers.redirect_back(conn, params)
     end
   end

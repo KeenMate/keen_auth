@@ -21,6 +21,9 @@ config :test_app, :keen_auth,
   strategies: [
     # Email authentication - works out of the box for testing
     email: [
+      label: "Email",
+      icon: "mail",
+      color: "#4caf50",
       authentication_handler: TestApp.Auth.EmailHandler,
       mapper: TestApp.Auth.EmailMapper,
       processor: TestApp.Auth.Processor
@@ -28,6 +31,9 @@ config :test_app, :keen_auth,
 
     # Azure AD / Entra ID - configure in .local.exs
     entra: [
+      label: "Microsoft Entra",
+      icon: "microsoft",
+      color: "#0078d4",
       strategy: Assent.Strategy.AzureAD,
       mapper: KeenAuth.Mapper.AzureAD,
       processor: TestApp.Auth.Processor,
@@ -39,8 +45,12 @@ config :test_app, :keen_auth,
       ]
     ],
 
-    # GitHub - configure in .local.exs
+    # GitHub - configure in .local.exs and set enabled: true
     github: [
+      enabled: false,
+      label: "GitHub",
+      icon: "github",
+      color: "#333333",
       strategy: Assent.Strategy.Github,
       mapper: KeenAuth.Mapper.Github,
       processor: TestApp.Auth.Processor,

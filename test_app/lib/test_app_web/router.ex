@@ -19,9 +19,13 @@ defmodule TestAppWeb.Router do
     plug :put_secure_browser_headers
   end
 
-  # KeenAuth pipeline - stores config in connection
+  # KeenAuth pipeline - stores config in connection + auth session cookie
   pipeline :authentication do
     plug KeenAuth.Plug, otp_app: :test_app
+    # Separate auth cookie for OAuth state
+    # HTTP dev: secure: false, same_site: "Lax" (requires response_mode: "query")
+    # HTTPS prod: secure: true, same_site: "None" (allows form_post)
+    plug KeenAuth.Plug.AuthSession, secure: false, same_site: "Lax"
   end
 
   # Optional auth - fetch user if logged in, but don't require it
@@ -33,6 +37,13 @@ defmodule TestAppWeb.Router do
   pipeline :require_auth do
     plug KeenAuth.Plug.FetchUser
     plug KeenAuth.Plug.RequireAuthenticated, redirect: "/login"
+  end
+
+  # Admin only - requires admin role
+  pipeline :require_admin do
+    plug KeenAuth.Plug.FetchUser
+    plug KeenAuth.Plug.RequireAuthenticated, redirect: "/login"
+    plug KeenAuth.Plug.Authorize.Roles, roles: ["admin"]
   end
 
   # Public routes with optional user display
@@ -77,5 +88,13 @@ defmodule TestAppWeb.Router do
     get "/dashboard", PageController, :dashboard
     get "/profile", PageController, :profile
     get "/debug", PageController, :debug
+  end
+
+  # Admin only routes (requires admin role)
+  scope "/admin", TestAppWeb do
+    pipe_through [:browser, :authentication, :require_admin]
+
+    get "/", PageController, :admin
+    get "/settings", PageController, :admin_settings
   end
 end

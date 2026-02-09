@@ -3,7 +3,7 @@ defmodule TestAppWeb.PageController do
 
   def home(conn, _params) do
     user = KeenAuth.current_user(conn)
-    providers = get_configured_providers()
+    providers = KeenAuth.list_providers(:test_app)
 
     html(conn, """
     <!DOCTYPE html>
@@ -13,60 +13,65 @@ defmodule TestAppWeb.PageController do
       <h1>KeenAuth Test App</h1>
 
       #{if user do
+        is_admin = "admin" in (user.roles || [])
         """
         <div style="background: #e8f5e9; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h2>Welcome, #{user.display_name || user.email}!</h2>
           <p><strong>Email:</strong> #{user.email}</p>
           <p><strong>User ID:</strong> #{user.user_id}</p>
           <p><strong>Provider:</strong> #{KeenAuth.Storage.get_provider(conn) || "unknown"}</p>
+          <p><strong>Roles:</strong> #{inspect(user.roles || [])}</p>
           <div style="margin-top: 15px;">
             <a href="/dashboard" style="display: inline-block; padding: 10px 20px; background: #4caf50; color: white; text-decoration: none; border-radius: 4px; margin-right: 10px;">Dashboard</a>
             <a href="/profile" style="display: inline-block; padding: 10px 20px; background: #2196f3; color: white; text-decoration: none; border-radius: 4px; margin-right: 10px;">Profile</a>
             <a href="/debug" style="display: inline-block; padding: 10px 20px; background: #9c27b0; color: white; text-decoration: none; border-radius: 4px; margin-right: 10px;">Debug</a>
+            #{if is_admin, do: "<a href=\"/admin\" style=\"display: inline-block; padding: 10px 20px; background: #ff9800; color: white; text-decoration: none; border-radius: 4px; margin-right: 10px;\">Admin</a>", else: ""}
             <a href="/auth/delete" style="display: inline-block; padding: 10px 20px; background: #f44336; color: white; text-decoration: none; border-radius: 4px;">Sign Out</a>
           </div>
         </div>
         """
       else
+        oauth_providers = Enum.reject(providers, & &1.name == :email)
         """
         <div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h2>Not signed in</h2>
           <p>Choose a sign-in method below to get started.</p>
-          <a href="/login" style="display: inline-block; padding: 10px 20px; background: #ff9800; color: white; text-decoration: none; border-radius: 4px;">Go to Login</a>
+          <div style="margin-top: 15px;">
+            <a href="/login" style="display: inline-block; padding: 10px 20px; background: #ff9800; color: white; text-decoration: none; border-radius: 4px; margin-right: 10px;">Email Login</a>
+            #{KeenAuth.render_providers(oauth_providers, &render_small_button/1)}
+          </div>
         </div>
         """
       end}
 
-      <h3>Quick Links</h3>
+      <h3>Quick Sign In</h3>
+      <div style="margin: 15px 0;">
+        #{KeenAuth.render_providers(providers, &render_small_button/1)}
+      </div>
+
+      <h3>Protected Pages</h3>
       <ul>
-        <li><a href="/login">Sign in with Email</a> (admin@test.com / admin123)</li>
-        <li><a href="/auth/entra/new">Sign in with Microsoft Entra</a></li>
-        <li><a href="/auth/github/new">Sign in with GitHub</a></li>
-        <li><a href="/dashboard">Dashboard (protected)</a></li>
-        <li><a href="/profile">Profile (protected)</a></li>
+        <li><a href="/dashboard">Dashboard</a> (requires login)</li>
+        <li><a href="/profile">Profile</a> (requires login)</li>
+        <li><a href="/debug">Debug</a> (requires login)</li>
+        <li><a href="/admin">Admin Panel</a> (requires admin role)</li>
       </ul>
 
       <h3>Configured Providers</h3>
       <ul>
-        #{Enum.map_join(providers, "\n", fn {name, strategy} -> "<li><strong>#{name}</strong> - #{strategy}</li>" end)}
+        #{Enum.map_join(providers, "\n", fn p ->
+          "<li><strong>#{p.name}</strong> - #{p.label} (#{p.color || "no color"})</li>"
+        end)}
       </ul>
     </body>
     </html>
     """)
   end
 
-  defp get_configured_providers do
-    config = Application.get_env(:test_app, :keen_auth, [])
-    strategies = Keyword.get(config, :strategies, [])
-
-    Enum.map(strategies, fn {name, opts} ->
-      strategy = Keyword.get(opts, :strategy, "email")
-      {name, strategy}
-    end)
-  end
-
   def login(conn, _params) do
     flash_error = Phoenix.Flash.get(conn.assigns[:flash] || %{}, :error)
+    providers = KeenAuth.list_providers(:test_app)
+    oauth_providers = Enum.reject(providers, fn p -> p.name == :email end)
 
     html(conn, """
     <!DOCTYPE html>
@@ -116,23 +121,42 @@ defmodule TestAppWeb.PageController do
         </p>
       </div>
 
-      <!-- OAuth Providers -->
-      <div style="text-align: center;">
-        <p style="color: #666; margin-bottom: 15px;">Or sign in with:</p>
-
-        <a href="/auth/entra/new" style="display: block; padding: 15px; margin: 10px 0; background: #0078d4; color: white; text-decoration: none; border-radius: 4px;">
-          Microsoft Entra
-        </a>
-
-        <a href="/auth/github/new" style="display: block; padding: 15px; margin: 10px 0; background: #333; color: white; text-decoration: none; border-radius: 4px;">
-          GitHub
-        </a>
-      </div>
+      <!-- OAuth Providers (dynamically rendered) -->
+      #{if oauth_providers != [] do
+        """
+        <div style="text-align: center;">
+          <p style="color: #666; margin-bottom: 15px;">Or sign in with:</p>
+          #{KeenAuth.render_providers(oauth_providers, &render_large_button/1)}
+        </div>
+        """
+      else
+        ""
+      end}
 
       <p style="text-align: center; margin-top: 20px;"><a href="/">Back to Home</a></p>
     </body>
     </html>
     """)
+  end
+
+  # Large button renderer for login page
+  defp render_large_button(provider) do
+    color = provider.color || "#333"
+    """
+    <a href="#{provider.path}" style="display: block; padding: 15px; margin: 10px 0; background: #{color}; color: white; text-decoration: none; border-radius: 4px;">
+      #{provider.label}
+    </a>
+    """
+  end
+
+  # Small inline button renderer (example for navbar usage)
+  defp render_small_button(provider) do
+    color = provider.color || "#333"
+    """
+    <a href="#{provider.path}" style="display: inline-block; padding: 8px 12px; margin: 0 5px; background: #{color}; color: white; text-decoration: none; border-radius: 4px; font-size: 12px;">
+      #{provider.label}
+    </a>
+    """
   end
 
   def dashboard(conn, _params) do
@@ -391,5 +415,93 @@ defmodule TestAppWeb.PageController do
     else
       inspect(claims, pretty: true)
     end
+  end
+
+  # ============ Admin Pages (requires admin role) ============
+
+  def admin(conn, _params) do
+    user = conn.assigns[:current_user]
+
+    html(conn, """
+    <!DOCTYPE html>
+    <html>
+    <head><title>Admin Panel - KeenAuth Test</title></head>
+    <body style="font-family: sans-serif; max-width: 800px; margin: 50px auto; padding: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>🔐 Admin Panel</h1>
+        <a href="/auth/delete" style="padding: 10px 20px; background: #f44336; color: white; text-decoration: none; border-radius: 4px;">Sign Out</a>
+      </div>
+
+      <div style="background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px; margin: 20px 0;">
+        <strong>Protected Route!</strong> This page requires the <code>admin</code> role.
+        <br><br>
+        Your roles: <code>#{inspect(user.roles)}</code>
+      </div>
+
+      <div style="background: #e8f5e9; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="margin-top: 0;">Welcome, Admin #{user.display_name || user.email}!</h3>
+        <p>You have access to admin features because your account has the <code>admin</code> role.</p>
+      </div>
+
+      <h3>Admin Actions</h3>
+      <ul>
+        <li><a href="/admin/settings">Admin Settings</a></li>
+        <li><a href="/dashboard">User Dashboard</a> (also accessible to non-admins)</li>
+      </ul>
+
+      <h3>Test Authorization</h3>
+      <p>Try these scenarios:</p>
+      <ul>
+        <li><strong>Email admin:</strong> Login with <code>admin@test.com / admin123</code> → Can access this page</li>
+        <li><strong>Email user:</strong> Login with <code>user@test.com / user123</code> → Will be denied access</li>
+        <li><strong>Entra user:</strong> Any Entra login → Gets admin role automatically (for testing)</li>
+      </ul>
+
+      <p style="margin-top: 30px;">
+        <a href="/">← Home</a> |
+        <a href="/dashboard">Dashboard</a> |
+        <a href="/profile">Profile</a>
+      </p>
+    </body>
+    </html>
+    """)
+  end
+
+  def admin_settings(conn, _params) do
+    user = conn.assigns[:current_user]
+
+    html(conn, """
+    <!DOCTYPE html>
+    <html>
+    <head><title>Admin Settings - KeenAuth Test</title></head>
+    <body style="font-family: sans-serif; max-width: 800px; margin: 50px auto; padding: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>⚙️ Admin Settings</h1>
+        <a href="/auth/delete" style="padding: 10px 20px; background: #f44336; color: white; text-decoration: none; border-radius: 4px;">Sign Out</a>
+      </div>
+
+      <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; margin: 20px 0;">
+        <strong>Admin Only!</strong> Logged in as: #{user.display_name || user.email}
+      </div>
+
+      <h3>Application Settings</h3>
+      <div style="background: #f5f5f5; padding: 20px; border-radius: 8px;">
+        <p><em>This is a placeholder settings page to demonstrate role-based authorization.</em></p>
+        <p>In a real app, you might have:</p>
+        <ul>
+          <li>User management</li>
+          <li>System configuration</li>
+          <li>Audit logs</li>
+          <li>Feature flags</li>
+        </ul>
+      </div>
+
+      <p style="margin-top: 30px;">
+        <a href="/admin">← Admin Panel</a> |
+        <a href="/">Home</a>
+      </p>
+    </body>
+    </html>
+    """)
   end
 end

@@ -98,7 +98,7 @@ defmodule KeenAuth.Processor do
               mapped_user :: KeenAuth.User.t() | map(),
               response :: AuthenticationController.oauth_callback_response() | nil
             ) ::
-              {:ok, Plug.Conn.t(), KeenAuth.User.t() | map(), AuthenticationController.oauth_callback_result() | nil} | Plug.Conn.t()
+              {:ok, Plug.Conn.t(), KeenAuth.User.t() | map(), AuthenticationController.oauth_callback_response() | nil} | Plug.Conn.t()
 
   @doc """
   Handles user sign out.

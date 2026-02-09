@@ -3,6 +3,13 @@ import Config
 # Development configuration
 config :test_app, TestAppWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4000],
+  # NOTE: For testing dual-cookie OAuth with form_post, HTTPS is required.
+  # Uncomment below and update redirect_uri to https://localhost:4001/...
+  # https: [
+  #   port: 4001,
+  #   certfile: "priv/cert/selfsigned.pem",
+  #   keyfile: "priv/cert/selfsigned_key.pem"
+  # ],
   check_origin: false,
   code_reloader: true,
   debug_errors: true,

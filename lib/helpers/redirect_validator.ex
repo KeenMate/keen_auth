@@ -41,6 +41,8 @@ defmodule KeenAuth.Helpers.RedirectValidator do
       end
   """
 
+  require KeenAuth.Logger, as: Log
+
   @max_url_length 2048
 
   @doc """
@@ -50,14 +52,23 @@ defmodule KeenAuth.Helpers.RedirectValidator do
   """
   @spec validate(binary() | nil, Plug.Conn.t()) :: binary()
   def validate(nil, _conn), do: "/"
-  def validate(url, _conn) when byte_size(url) > @max_url_length, do: "/"
+
+  def validate(url, _conn) when byte_size(url) > @max_url_length do
+    Log.warn(:security, "Rejected redirect URL exceeding max length", length: byte_size(url))
+    "/"
+  end
 
   def validate(url, conn) do
     validator = get_validator(conn)
 
     case validator.(url, conn) do
-      {:ok, validated_url} -> validated_url
-      :error -> "/"
+      {:ok, validated_url} ->
+        Log.debug(:security, "Validated redirect URL", url: validated_url)
+        validated_url
+
+      :error ->
+        Log.warn(:security, "Rejected invalid redirect URL", url: url)
+        "/"
     end
   end
 

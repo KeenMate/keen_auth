@@ -1,22 +1,110 @@
 # KeenAuth
 
-A powerful and flexible OAuth authentication library for Phoenix applications. KeenAuth provides a clean pipeline architecture that separates concerns into three main components: Strategy, Mapper, and Storage.
+**Super simple, yet super powerful** authentication for Phoenix applications.
+
+[![Hex.pm](https://img.shields.io/hexpm/v/keen_auth.svg)](https://hex.pm/packages/keen_auth)
+[![Docs](https://img.shields.io/badge/docs-hexdocs-blue.svg)](https://hexdocs.pm/keen_auth)
+
+## Philosophy
+
+KeenAuth is built on one core belief: **authentication shouldn't be complicated**.
+
+Most auth libraries force you to choose between "simple but limited" or "powerful but complex". KeenAuth gives you both - start with a 10-line configuration and scale to enterprise-grade features without rewriting anything.
+
+**Key principles:**
+
+- **Minimal configuration** - Get OAuth working with just a few lines of config
+- **Pipeline architecture** - Like Unix pipes for authentication: small, focused components that compose beautifully
+- **Progressive complexity** - Start simple, add sophistication only where you need it
+- **No magic** - Every step is explicit and debuggable
+- **Full data access** - Raw OAuth data (tokens, claims) flows through every stage; nothing is hidden
 
 ## Architecture Overview
 
 KeenAuth follows a pipeline approach where each authentication stage can be customized independently:
 
-```
-User → Strategy → Mapper → Processor → Storage
-       (OAuth)   (Normalize) (Business Logic) (Persist)
+```mermaid
+flowchart LR
+    User([User]) --> Strategy
+    Strategy[Strategy<br/><small>OAuth protocol</small>] --> Mapper[Mapper<br/><small>Normalize data</small>]
+    Mapper --> Processor[Processor<br/><small>Business logic</small>]
+    Processor --> Storage[Storage<br/><small>Persist session</small>]
+    Storage --> Done([Authenticated!])
 ```
 
 ### Core Components
 
-- **Strategy**: Handles provider-specific OAuth protocols (Azure AD, GitHub, Facebook, etc.)
-- **Mapper**: Normalizes provider responses and can enrich data with additional API calls
-- **Processor**: Implements business logic, user validation, and transformations
-- **Storage**: Manages user data persistence (sessions, database, JWT, etc.)
+| Component | Purpose | Has Access To |
+|-----------|---------|---------------|
+| **Strategy** | OAuth protocol (via Assent) | Provider config |
+| **Mapper** | Transform external user → your app's format | Raw OAuth user data |
+| **Processor** | Your business logic | Mapped user + raw OAuth response + tokens |
+| **Storage** | Persist the session | Final user + tokens |
+
+**Key insight:** Raw data flows through the entire pipeline. Your Processor receives both the mapped user AND the original OAuth response (tokens, raw claims, etc.). Nothing is hidden - you always have access to everything you need.
+
+### What Each Stage Does
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  MAPPER                                                                 │
+│  ───────                                                                │
+│  Input:  Raw user from OAuth provider (provider-specific format)        │
+│  Output: Normalized user for YOUR app (consistent format)               │
+│                                                                         │
+│  Example: Azure returns "userPrincipalName", GitHub returns "login"     │
+│           → Mapper converts both to your app's "email" / "username"     │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  PROCESSOR                                                              │
+│  ─────────                                                              │
+│  Input:  Mapped user + FULL OAuth response (tokens, raw user, claims)   │
+│  Output: Final user (after your business logic)                         │
+│                                                                         │
+│  This is YOUR code. Create DB records, validate domains, assign roles,  │
+│  call external APIs, reject users - whatever your app needs.            │
+│  You have access to EVERYTHING: mapped user, raw claims, all tokens.    │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+## Start Simple, Scale Up
+
+**Level 1: Just make it work** (5 minutes)
+```elixir
+# config.exs - that's it!
+config :my_app, :keen_auth,
+  strategies: [
+    github: [
+      strategy: Assent.Strategy.Github,
+      config: [client_id: "...", client_secret: "..."]
+    ]
+  ]
+```
+
+**Level 2: Add business logic** (when you need it)
+```elixir
+# Add a processor to validate users, create accounts, assign roles
+github: [
+  strategy: Assent.Strategy.Github,
+  processor: MyApp.Auth.Processor,  # Your business logic
+  config: [...]
+]
+```
+
+**Level 3: Full customization** (enterprise scenarios)
+```elixir
+# Custom mapper for Graph API enrichment, custom storage for distributed sessions
+github: [
+  strategy: Assent.Strategy.Github,
+  mapper: MyApp.Auth.GraphMapper,      # Enrich with external APIs
+  processor: MyApp.Auth.Processor,      # Complex validation & roles
+  storage: MyApp.Auth.RedisStorage,     # Distributed session storage
+  config: [...]
+]
+```
+
+Each level builds on the previous - no rewrites, just additions.
 
 ## Basic Flow Diagram
 
@@ -45,7 +133,7 @@ sequenceDiagram
     participant AzureAD
     participant GraphAPI
     participant Database
-    participant Session
+    participant Storage as Storage (Session/ETS/Redis/...)
 
     User->>KeenAuth: Login request
     KeenAuth->>AzureAD: Redirect to OAuth
@@ -72,9 +160,8 @@ sequenceDiagram
     Database->>KeenAuth: Updated user
 
     Note over KeenAuth: Storage Phase
-    KeenAuth->>Database: Store user session
-    KeenAuth->>Session: Set session data
-    KeenAuth->>User: Set JWT cookie
+    KeenAuth->>Storage: Persist user & tokens
+    KeenAuth->>User: Set cookie/token
     KeenAuth->>User: Redirect to app
 ```
 
@@ -85,7 +172,7 @@ Add `keen_auth` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:keen_auth, "~> 0.2.0"}
+    {:keen_auth, "~> 1.0"}
   ]
 end
 ```
@@ -96,8 +183,9 @@ end
 
 Add to your `config.exs`:
 
-> [!IMPORTANT]
-> **OAuth Scopes**: KeenAuth automatically requests `openid profile email offline_access` scopes if you don't specify any. This ensures user profile data is returned by the provider. If you specify custom scopes via `authorization_params: [scope: "..."]`, make sure to include at least `openid profile email` or you may receive empty user data.
+> #### OAuth Scopes {: .info}
+>
+> KeenAuth automatically requests `openid profile email offline_access` scopes if you don't specify any. If you specify custom scopes via `authorization_params: [scope: "..."]`, make sure to include at least `openid profile email` or you may receive empty user data. The `offline_access` scope is optional - it enables refresh tokens.
 
 ```elixir
 config :keen_auth,
@@ -365,7 +453,8 @@ end
 
 ### OAuth Scopes
 
-> [!WARNING]
+> #### Warning {: .warning}
+>
 > If you override `authorization_params` with custom scopes, you **must** include the essential OIDC scopes or you will receive empty user data from the provider.
 
 KeenAuth automatically includes these default scopes when none are specified:
@@ -375,18 +464,18 @@ openid profile email offline_access
 ```
 
 **What each scope provides:**
-- `openid` - Required for OIDC, returns `sub` (user ID)
-- `profile` - Returns `name`, `preferred_username`, etc.
-- `email` - Returns user's email address
-- `offline_access` - Returns refresh token for token renewal
+- `openid` - **Required** for OIDC, returns `sub` (user ID)
+- `profile` - **Required** for user info (`name`, `preferred_username`, etc.)
+- `email` - **Required** for user's email address
+- `offline_access` - *Optional* - enables refresh tokens for token renewal
 
 **Custom scopes example:**
 ```elixir
 # If you need additional scopes (e.g., Microsoft Graph API access),
-# always include the base OIDC scopes:
+# always include the essential OIDC scopes:
 config: [
   authorization_params: [
-    scope: "openid profile email offline_access User.Read Directory.Read.All"
+    scope: "openid profile email User.Read Directory.Read.All"
   ]
 ]
 ```

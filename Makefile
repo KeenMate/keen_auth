@@ -1,4 +1,4 @@
-.PHONY: setup dev deps compile test docs format clean help
+.PHONY: setup dev deps compile test docs format clean publish publish-dry help
 
 # Setup library + test app
 setup: deps
@@ -46,6 +46,14 @@ clean:
 routes:
 	cd test_app && mix phx.routes
 
+# Publish to hex.pm (dry run)
+publish-dry:
+	mix hex.publish --dry-run
+
+# Publish to hex.pm
+publish:
+	mix hex.publish
+
 # Help
 help:
 	@echo "Development:"
@@ -62,3 +70,7 @@ help:
 	@echo "  format       - Format code"
 	@echo "  format-check - Check code formatting"
 	@echo "  clean        - Clean build artifacts"
+	@echo ""
+	@echo "Publishing:"
+	@echo "  publish-dry  - Dry run publish to hex.pm"
+	@echo "  publish      - Publish to hex.pm"
