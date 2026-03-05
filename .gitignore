@@ -27,3 +27,6 @@ keen_auth-*.tar
 # Local config with secrets (never commit)
 *.local.exs
 .local.exs
+
+# Self-signed certificates
+test_app/priv/cert/*.pem
